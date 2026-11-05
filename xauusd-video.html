@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XAUUSD 教學短片</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #0b0f14;
+      --bg-card: rgba(18, 24, 33, 0.9);
+      --gold: #d4af37;
+      --gold-light: #f0d78c;
+      --gold-dark: #b8860b;
+      --text: #e8e6e3;
+      --text-muted: #9ca3af;
+      --border: rgba(212, 175, 55, 0.25);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .header {
+      background: rgba(11, 15, 20, 0.9);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header a {
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 8px; }
+    .meta { color: var(--text-muted); margin-bottom: 24px; font-size: 0.9rem; }
+    .video-wrapper {
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+    }
+    .video-wrapper iframe, .video-wrapper video {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .desc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      line-height: 1.7;
+    }
+    .back {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--gold);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="xauusd-dashboard.html">← 返回課程中心</a>
+    <span id="userLabel"></span>
+  </header>
+  <div class="container">
+    <a href="xauusd-dashboard.html" class="back">← 返回</a>
+    <h1 id="videoTitle">載入中...</h1>
+    <div class="meta" id="videoMeta"></div>
+    <div class="video-wrapper" id="player"></div>
+    <div class="desc" id="videoDesc"></div>
+  </div>
+
+  <script>
+    function getCurrentUser() {
+      const raw = sessionStorage.getItem('xauusd_user') || localStorage.getItem('xauusd_user');
+      if (!raw) { window.location.href = 'xauusd-login.html'; return null; }
+      try { return JSON.parse(raw); } catch { return null; }
+    }
+
+    function getVideos() {
+      return JSON.parse(localStorage.getItem('xauusd_videos') || '[]');
+    }
+
+    function getViews() {
+      return JSON.parse(localStorage.getItem('xauusd_views') || '[]');
+    }
+
+    function saveViews(views) {
+      localStorage.setItem('xauusd_views', JSON.stringify(views));
+    }
+
+    const user = getCurrentUser();
+    if (!user) throw new Error('not logged in');
+
+    document.getElementById('userLabel').textContent = user.name;
+
+    const params = new URLSearchParams(location.search);
+    const videoId = params.get('id');
+    const videos = getVideos();
+    const video = videos.find(v => v.id === videoId);
+
+    if (!video) {
+      document.body.innerHTML = '<div style="padding:40px;text-align:center;">找不到此短片<br><a href="xauusd-dashboard.html" style="color:#d4af37;">返回</a></div>';
+      throw new Error('no video');
+    }
+
+    document.getElementById('videoTitle').textContent = video.title;
+    document.getElementById('videoMeta').textContent = `單元：${video.moduleName || '未分類'} · 上傳於 ${video.createdAt ? new Date(video.createdAt).toLocaleDateString('zh-Hant') : ''}`;
+    document.getElementById('videoDesc').textContent = video.desc || '（無說明）';
+
+    const player = document.getElementById('player');
+    if (video.url && (video.url.includes('youtube.com') || video.url.includes('youtu.be'))) {
+      let ytId = '';
+      if (video.url.includes('youtu.be/')) ytId = video.url.split('youtu.be/')[1].split('?')[0];
+      else if (video.url.includes('v=')) ytId = video.url.split('v=')[1].split('&')[0];
+      player.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?enablejsapi=1" allowfullscreen></iframe>`;
+    } else if (video.url) {
+      player.innerHTML = `<video controls id="vid"><source src="${video.url}"></video>`;
+    } else {
+      player.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;">尚未設定影片來源</div>';
+    }
+
+    // 觀看記錄
+    let watchStart = null;
+    let accumulated = 0;
+    let counted = false;
+
+    function recordView() {
+      const views = getViews();
+      let rec = views.find(v => v.username === user.username && v.videoId === videoId);
+      if (!rec) {
+        rec = { username: user.username, name: user.name, videoId, videoTitle: video.title, viewCount: 0, totalWatchTime: 0, lastViewed: null };
+        views.push(rec);
+      }
+      if (!counted) {
+        rec.viewCount += 1;
+        counted = true;
+      }
+      rec.totalWatchTime += Math.round(accumulated);
+      rec.lastViewed = new Date().toISOString();
+      accumulated = 0;
+      saveViews(views);
+    }
+
+    function startTracking() {
+      if (watchStart) return;
+      watchStart = Date.now();
+    }
+
+    function stopTracking() {
+      if (!watchStart) return;
+      accumulated += (Date.now() - watchStart) / 1000;
+      watchStart = null;
+      recordView();
+    }
+
+    // YouTube 無法精準追蹤，用定時累加示範
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        accumulated += 2;
+        if (accumulated >= 10) recordView();
+      }
+    }, 2000);
+
+    window.addEventListener('beforeunload', stopTracking);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') stopTracking();
+      else startTracking();
+    });
+
+    startTracking();
+    recordView(); // 首次進入計一次
+  </script>
+</body>
+</html>

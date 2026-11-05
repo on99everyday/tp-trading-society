@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XAUUSD 後台管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: rgba(18, 24, 33, 0.92);
+      --gold: #d4af37;
+      --gold-dark: #b8860b;
+      --text: #e8e6e3;
+      --muted: #9ca3af;
+      --border: rgba(212, 175, 55, 0.22);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); }
+    .header {
+      background: rgba(11,15,20,.9); border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .header a { color: var(--gold); text-decoration: none; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+    h2 { font-size: 1.3rem; margin: 28px 0 14px; display: flex; align-items: center; gap: 8px; }
+    h2::before { content:''; width:4px; height:18px; background:var(--gold); border-radius:2px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+    label { display: block; font-size: .85rem; color: var(--muted); margin: 12px 0 6px; }
+    input, textarea, select {
+      width: 100%; padding: 11px 12px; background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1); border-radius: 10px; color: var(--text);
+      font-family: inherit; font-size: .95rem; outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+    textarea { min-height: 80px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn {
+      margin-top: 16px; padding: 12px 20px; background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      border: none; border-radius: 10px; color: #0b0f14; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    th { color: var(--muted); font-weight: 500; }
+    .del { color: #f87171; cursor: pointer; font-size: .85rem; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+    .tab.active { background: rgba(212,175,55,.15); color: var(--gold); border-color: var(--border); }
+    .hidden { display: none; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="xauusd-dashboard.html">← 返回課程</a>
+    <strong>後台管理</strong>
+  </header>
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="upload">上傳短片</div>
+      <div class="tab" data-tab="list">已上傳短片</div>
+      <div class="tab" data-tab="records">觀看記錄</div>
+    </div>
+
+    <div id="upload" class="panel">
+      <div class="card">
+        <h2>新增教學短片</h2>
+        <label>短片標題</label>
+        <input id="title" placeholder="例如：K線基礎認識" />
+        <label>說明</label>
+        <textarea id="desc" placeholder="簡單描述這支短片內容"></textarea>
+        <div class="row">
+          <div>
+            <label>所屬單元</label>
+            <select id="module">
+              <option value="UNIT 01">UNIT 01 基礎認識</option>
+              <option value="UNIT 02">UNIT 02 技術分析</option>
+              <option value="UNIT 03">UNIT 03 多時間框架</option>
+              <option value="UNIT 04">UNIT 04 風險管理</option>
+              <option value="UNIT 05">UNIT 05 交易策略</option>
+              <option value="UNIT 06">UNIT 06 心態日誌</option>
+            </select>
+          </div>
+          <div>
+            <label>影片來源（YouTube 連結 或 影片網址）</label>
+            <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
+          </div>
+        </div>
+        <button class="btn" id="addBtn">上傳短片</button>
+      </div>
+    </div>
+
+    <div id="list" class="panel hidden">
+      <div class="card">
+        <h2>已上傳的短片</h2>
+        <table id="videoTable">
+          <thead><tr><th>標題</th><th>單元</th><th>上傳時間</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="records" class="panel hidden">
+      <div class="card">
+        <h2>學員觀看記錄</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:12px;">觀看時間與次數僅工作人員可見，學員端不會顯示。</p>
+        <table id="recordTable">
+          <thead><tr><th>學員</th><th>短片</th><th>觀看次數</th><th>累計觀看時間</th><th>最後觀看</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function checkAdmin() {
+      const raw = sessionStorage.getItem('xauusd_user') || localStorage.getItem('xauusd_user');
+      if (!raw) { location.href = 'xauusd-login.html'; return; }
+      const user = JSON.parse(raw);
+      if (user.username !== 'admin') {
+        alert('只有管理員可以進入後台');
+        location.href = 'xauusd-dashboard.html';
+      }
+    }
+    checkAdmin();
+
+    function getVideos() { return JSON.parse(localStorage.getItem('xauusd_videos') || '[]'); }
+    function saveVideos(v) { localStorage.setItem('xauusd_videos', JSON.stringify(v)); }
+    function getViews() { return JSON.parse(localStorage.getItem('xauusd_views') || '[]'); }
+
+    function formatTime(sec) {
+      sec = Math.round(sec || 0);
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+    }
+
+    function renderVideos() {
+      const tbody = document.querySelector('#videoTable tbody');
+      const videos = getVideos();
+      tbody.innerHTML = videos.length ? videos.map(v => `
+        <tr>
+          <td>${v.title}</td>
+          <td>${v.moduleName || ''}</td>
+          <td>${v.createdAt ? new Date(v.createdAt).toLocaleString('zh-Hant') : ''}</td>
+          <td><span class="del" data-id="${v.id}">刪除</span></td>
+        </tr>
+      `).join('') : '<tr><td colspan="4" style="color:var(--muted);text-align:center;">尚未上傳任何短片</td></tr>';
+
+      tbody.querySelectorAll('.del').forEach(el => {
+        el.onclick = () => {
+          if (confirm('確定刪除此短片？')) {
+            const id = el.dataset.id;
+            saveVideos(getVideos().filter(v => v.id !== id));
+            renderVideos();
+          }
+        };
+      });
+    }
+
+    function renderRecords() {
+      const tbody = document.querySelector('#recordTable tbody');
+      const views = getViews();
+      tbody.innerHTML = views.length ? views.map(r => `
+        <tr>
+          <td>${r.name || r.username}</td>
+          <td>${r.videoTitle || r.videoId}</td>
+          <td>${r.viewCount || 0}</td>
+          <td>${formatTime(r.totalWatchTime)}</td>
+          <td>${r.lastViewed ? new Date(r.lastViewed).toLocaleString('zh-Hant') : '-'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5" style="color:var(--muted);text-align:center;">暫無觀看記錄</td></tr>';
+    }
+
+    document.getElementById('addBtn').onclick = () => {
+      const title = document.getElementById('title').value.trim();
+      const desc = document.getElementById('desc').value.trim();
+      const moduleName = document.getElementById('module').value;
+      const url = document.getElementById('url').value.trim();
+      if (!title) return alert('請填寫標題');
+      const videos = getVideos();
+      videos.push({
+        id: 'v_' + Date.now(),
+        title, desc, moduleName, url,
+        createdAt: new Date().toISOString()
+      });
+      saveVideos(videos);
+      document.getElementById('title').value = '';
+      document.getElementById('desc').value = '';
+      document.getElementById('url').value = '';
+      alert('已上傳');
+      renderVideos();
+    };
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+        if (tab.dataset.tab === 'list') renderVideos();
+        if (tab.dataset.tab === 'records') renderRecords();
+      };
+    });
+
+    renderVideos();
+  </script>
+</body>
+</html>

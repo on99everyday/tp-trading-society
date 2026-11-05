@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XAUUSD 課程中心</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #0b0f14;
+      --bg-card: rgba(18, 24, 33, 0.9);
+      --bg-card-hover: rgba(24, 32, 44, 0.95);
+      --gold: #d4af37;
+      --gold-light: #f0d78c;
+      --gold-dark: #b8860b;
+      --text: #e8e6e3;
+      --text-muted: #9ca3af;
+      --border: rgba(212, 175, 55, 0.2);
+      --success: #34d399;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* 背景 */
+    .bg-pattern {
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 10% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 90% 80%, rgba(184, 134, 11, 0.05) 0%, transparent 50%),
+        linear-gradient(180deg, #0b0f14 0%, #111827 100%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(212, 175, 55, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212, 175, 55, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      z-index: 0;
+      pointer-events: none;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11, 15, 20, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: #0b0f14;
+    }
+
+    .logo-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .logo-text span {
+      color: var(--gold);
+    }
+
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .user-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .btn-logout {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 8px;
+      color: var(--gold);
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-logout:hover {
+      background: rgba(212, 175, 55, 0.12);
+      border-color: var(--gold);
+    }
+
+    .btn-logout svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Main */
+    .main {
+      position: relative;
+      z-index: 10;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+
+    /* Welcome */
+    .welcome {
+      margin-bottom: 36px;
+    }
+
+    .welcome h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .welcome h1 span {
+      color: var(--gold);
+    }
+
+    .welcome p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Section title */
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(180deg, var(--gold), var(--gold-dark));
+      border-radius: 2px;
+    }
+
+    /* Course modules */
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 40px;
+    }
+
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .module-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(212, 175, 55, 0.45);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    }
+
+    .module-card.locked {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .module-card.locked:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .module-num {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .module-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .module-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .module-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .module-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .module-status.available {
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--success);
+    }
+
+    .module-status.locked {
+      background: rgba(156, 163, 175, 0.12);
+      color: var(--text-muted);
+    }
+
+    .module-status.completed {
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--gold);
+    }
+
+    /* Notice */
+    .notice {
+      background: rgba(212, 175, 55, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+      border-radius: 12px;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .notice strong {
+      color: var(--gold-light);
+    }
+
+    /* Modal for lesson (simple) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: #121821;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      max-width: 520px;
+      width: 100%;
+      padding: 28px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal h3 {
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+      color: var(--gold-light);
+    }
+
+    .modal p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      color: #0b0f14;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: var(--text);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .header {
+        padding: 12px 16px;
+      }
+
+      .logo-text {
+        font-size: 1rem;
+      }
+
+      .user-info {
+        display: none;
+      }
+
+      .main {
+        padding: 24px 16px 48px;
+      }
+
+      .welcome h1 {
+        font-size: 1.4rem;
+      }
+
+      .modules {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-pattern"></div>
+  <div class="bg-grid"></div>
+
+  <header class="header">
+    <div class="header-inner">
+      <a href="#" class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L3 7v2h18V7L12 2zm0 2.2L17.5 7H6.5L12 4.2zM5 11v8h2v-8H5zm4 0v8h2v-8H9zm4 0v8h2v-8h-2zm4 0v8h2v-8h-2zM3 21h18v2H3v-2z"/>
+          </svg>
+        </div>
+        <div class="logo-text">XAUUSD <span>課程中心</span></div>
+      </a>
+
+      <div class="user-area">
+        <div class="user-info">
+          <div class="user-name" id="userName">載入中...</div>
+          <div class="user-role">學員</div>
+        </div>
+        <button class="btn-logout" id="logoutBtn" title="登出">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          登出
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="welcome">
+      <h1>歡迎回來，<span id="welcomeName">學員</span></h1>
+      <p>繼續你的 XAUUSD 交易學習旅程</p>
+    </section>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value">6</div>
+        <div class="stat-label">課程單元</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">2</div>
+        <div class="stat-label">已完成</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">33%</div>
+        <div class="stat-label">整體進度</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">∞</div>
+        <div class="stat-label">終身觀看</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">課程單元</h2>
+    <div class="modules" id="modules">
+      <!-- 由 JS 渲染 -->
+    </div>
+
+    <div class="notice">
+      <strong>提示：</strong>短片由工作人員在後台上傳。學員點擊單元下方的短片即可觀看，觀看記錄（次數與時間）只在後台顯示，學員端不會看到。
+    </div>
+  </main>
+
+  <!-- 簡易單元說明視窗 -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle">單元標題</h3>
+      <p id="modalDesc">單元說明</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="modalClose">關閉</button>
+        <button class="btn btn-primary" id="modalStart">開始學習</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== 登入狀態檢查 ==========
+    function getCurrentUser() {
+      const raw = sessionStorage.getItem('xauusd_user') || localStorage.getItem('xauusd_user');
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    function requireLogin() {
+      const user = getCurrentUser();
+      if (!user) {
+        window.location.href = 'xauusd-login.html';
+        return null;
+      }
+      return user;
+    }
+
+    // ========== 登出 ==========
+    function logout() {
+      sessionStorage.removeItem('xauusd_user');
+      localStorage.removeItem('xauusd_user');
+      // 保留 remember username，方便下次登入
+      window.location.href = 'xauusd-login.html';
+    }
+
+    // ========== 課程單元資料 ==========
+    const MODULES = [
+      {
+        id: 1,
+        num: 'UNIT 01',
+        title: 'XAUUSD 基礎認識',
+        desc: '認識黃金市場特性、交易時段與影響金價的主要因素。',
+        duration: '約 45 分鐘',
+        status: 'completed'
+      },
+      {
+        id: 2,
+        num: 'UNIT 02',
+        title: '技術分析入門',
+        desc: 'K 線形態、支撐阻力、移動平均線與基本指標應用。',
+        duration: '約 60 分鐘',
+        status: 'completed'
+      },
+      {
+        id: 3,
+        num: 'UNIT 03',
+        title: '多時間框架分析',
+        desc: '日線、4小時、1小時圖表的配合使用與進場邏輯。',
+        duration: '約 55 分鐘',
+        status: 'available'
+      },
+      {
+        id: 4,
+        num: 'UNIT 04',
+        title: '風險管理與倉位計算',
+        desc: '停損設定、風險報酬比、資金管理原則。',
+        duration: '約 50 分鐘',
+        status: 'available'
+      },
+      {
+        id: 5,
+        num: 'UNIT 05',
+        title: '交易策略實戰',
+        desc: '常見黃金交易策略與真實案例拆解。',
+        duration: '約 70 分鐘',
+        status: 'locked'
+      },
+      {
+        id: 6,
+        num: 'UNIT 06',
+        title: '心態與交易日誌',
+        desc: '建立紀律、克服情緒、長期穩定獲利的關鍵。',
+        duration: '約 40 分鐘',
+        status: 'locked'
+      }
+    ];
+
+    function statusLabel(status) {
+      if (status === 'completed') return { text: '已完成', class: 'completed' };
+      if (status === 'available') return { text: '可學習', class: 'available' };
+      return { text: '尚未開放', class: 'locked' };
+    }
+
+    function renderModules() {
+      const container = document.getElementById('modules');
+      const videos = JSON.parse(localStorage.getItem('xauusd_videos') || '[]');
+
+      container.innerHTML = MODULES.map(m => {
+        const st = statusLabel(m.status);
+        const lockedClass = m.status === 'locked' ? ' locked' : '';
+        const moduleVideos = videos.filter(v => v.moduleName && v.moduleName.startsWith(m.num));
+        const videoList = moduleVideos.map(v => `
+          <div style="margin-top:10px;padding:8px 10px;background:rgba(212,175,55,.08);border-radius:8px;font-size:.85rem;">
+            <a href="xauusd-video.html?id=${v.id}" style="color:#f0d78c;text-decoration:none;">▶ ${v.title}</a>
+          </div>
+        `).join('');
+
+        return `
+          <div class="module-card${lockedClass}" data-id="${m.id}" data-status="${m.status}">
+            <div class="module-num">${m.num}</div>
+            <div class="module-title">${m.title}</div>
+            <div class="module-desc">${m.desc}</div>
+            ${videoList}
+            <div class="module-meta" style="margin-top:12px;">
+              <span>${m.duration}</span>
+              <span class="module-status ${st.class}">${st.text}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.module-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.tagName === 'A') return;
+          const status = card.dataset.status;
+          const mod = MODULES.find(m => m.id === parseInt(card.dataset.id));
+          if (!mod) return;
+          if (status === 'locked') {
+            openModal(mod.title, '此單元尚未開放，請先完成前面的課程單元。');
+          } else {
+            openModal(mod.title, mod.desc);
+          }
+        });
+      });
+    }
+
+    // ========== Modal ==========
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDesc = document.getElementById('modalDesc');
+
+    function openModal(title, desc) {
+      modalTitle.textContent = title;
+      modalDesc.textContent = desc;
+      modal.classList.add('show');
+    }
+
+    function closeModal() {
+      modal.classList.remove('show');
+    }
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalStart').addEventListener('click', () => {
+      closeModal();
+      alert('示範模式：此處可串接實際影片播放頁或講義下載。');
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // ========== 初始化 ==========
+    const user = requireLogin();
+    // 若尚無短片，自動加入示範短片
+    if (!localStorage.getItem('xauusd_videos')) {
+      const demo = [
+        { id: 'v_demo1', title: '黃金市場基礎介紹', desc: '了解 XAUUSD 的交易特性與主要影響因素。', moduleName: 'UNIT 01', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', createdAt: new Date().toISOString() },
+        { id: 'v_demo2', title: 'K線形態入門', desc: '常見 K 線形態與意義。', moduleName: 'UNIT 02', url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw', createdAt: new Date().toISOString() }
+      ];
+      localStorage.setItem('xauusd_videos', JSON.stringify(demo));
+    }
+    if (user) {
+      document.getElementById('userName').textContent = user.name;
+      document.getElementById('welcomeName').textContent = user.name;
+      if (user.username === 'admin') {
+        const adminLink = document.createElement('a');
+        adminLink.href = 'xauusd-admin.html';
+        adminLink.textContent = '後台管理';
+        adminLink.style.cssText = 'color:#d4af37;text-decoration:none;font-size:.85rem;margin-right:8px;';
+        document.querySelector('.user-area').insertBefore(adminLink, document.querySelector('.user-info'));
+      }
+      renderModules();
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if (confirm('確定要登出嗎？')) {
+        logout();
+      }
+    });
+  </script>
+</body>
+</html>

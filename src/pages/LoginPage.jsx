@@ -10,6 +10,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [resetHint, setResetHint] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -18,9 +19,16 @@ export function LoginPage() {
     }
   }, []);
 
+  function switchMode(next) {
+    setMode(next);
+    setError("");
+    setResetHint(false);
+  }
+
   async function onSubmit(event) {
     event.preventDefault();
     setError("");
+    setResetHint(false);
     setBusy(true);
     try {
       const trimmed = name.trim();
@@ -67,14 +75,14 @@ export function LoginPage() {
           <button
             type="button"
             className={`rounded-lg py-2 text-sm font-medium ${mode === "in" ? "bg-gold text-bg" : "text-muted"}`}
-            onClick={() => setMode("in")}
+            onClick={() => switchMode("in")}
           >
             登入
           </button>
           <button
             type="button"
             className={`rounded-lg py-2 text-sm font-medium ${mode === "up" ? "bg-gold text-bg" : "text-muted"}`}
-            onClick={() => setMode("up")}
+            onClick={() => switchMode("up")}
           >
             註冊
           </button>
@@ -126,6 +134,23 @@ export function LoginPage() {
               </button>
             </span>
           </label>
+          {mode === "in" ? (
+            <div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="text-sm font-medium text-gold"
+                  onClick={() => {
+                    setError("");
+                    setResetHint(true);
+                  }}
+                >
+                  忘記密碼
+                </button>
+              </div>
+              {resetHint ? <p className="mt-2 text-sm text-muted">請聯絡工作人員或管理員重設密碼。</p> : null}
+            </div>
+          ) : null}
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <button
             type="submit"

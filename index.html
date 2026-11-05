@@ -1,116 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TP Trading Society</title>
-  <meta name="description" content="現貨黃金交易學員學習平台：學習、每日覆盤、定期測驗。A learning platform for spot-gold trading students.">
-  <style>
-    :root {
-      --bg: #f7f4ee;
-      --ink: #1c1915;
-      --muted: #5c564c;
-      --line: #e4dccf;
-      --card: #fffdf9;
-      --gold: #8a6a2f;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Songti TC", "Noto Serif CJK TC", serif;
-      color: var(--ink);
-      background: var(--bg);
-      line-height: 1.6;
-    }
-
-    main {
-      max-width: 42rem;
-      margin: 0 auto;
-      padding: 4.5rem 1.5rem 3rem;
-    }
-
-    p.kicker {
-      margin: 0 0 0.75rem;
-      font-family: system-ui, sans-serif;
-      font-size: 0.75rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--gold);
-    }
-
-    h1 {
-      margin: 0 0 1rem;
-      font-size: clamp(2rem, 5vw, 2.75rem);
-      font-weight: 500;
-      letter-spacing: -0.02em;
-      line-height: 1.15;
-    }
-
-    .lead {
-      margin: 0 0 2.5rem;
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-
-    ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: grid;
-      gap: 0.75rem;
-    }
-
-    li {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 0.75rem;
-      padding: 1rem 1.15rem;
-    }
-
-    li strong {
-      display: block;
-      font-weight: 600;
-    }
-
-    li span {
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    footer {
-      margin-top: 3rem;
-      font-family: system-ui, sans-serif;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <p class="kicker">Spot gold · 現貨黃金</p>
-    <h1>TP Trading Society</h1>
-    <p class="lead">
-      歡迎來到學員學習平台。這裡用來學習、每日覆盤，以及定期測驗。
-      A quiet place for spot-gold trading students to study, review the day, and check what they know.
-    </p>
-    <ul>
-      <li>
-        <strong>學習 · Learning</strong>
-        <span>建立現貨黃金的基礎觀念與交易框架。</span>
-      </li>
-      <li>
-        <strong>每日覆盤 · Daily review</strong>
-        <span>回看當天走勢，整理判斷與下次要改的地方。</span>
-      </li>
-      <li>
-        <strong>定期測驗 · Periodic quizzes</strong>
-        <span>用短測驗確認觀念是否真的記住了。</span>
-      </li>
-    </ul>
-    <footer>TP Trading Society</footer>
-  </main>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>XAUUSD 課程</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="./xauusd.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong>XAUUSD <span>課程</span></strong>
+      <nav>
+        <button type="button" id="nav-fee" hidden>收費</button>
+        <button type="button" id="nav-staff" hidden>封控</button>
+        <button type="button" id="nav-out" hidden>登出</button>
+      </nav>
+    </header>
+    <main id="app"></main>
+    <script src="./xauusd.js"></script>
+  </body>
 </html>

@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/membership.test.js src/chat/*.test.js src/auth/*.test.js"
+    "test": "node --test src/membership.test.js src/chat/*.test.js src/auth/*.test.js src/settings/*.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

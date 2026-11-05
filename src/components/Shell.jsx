@@ -46,18 +46,18 @@ export function Shell({ profile, children }) {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-lg bg-gold text-bg">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3">
+          <Link to="/" className="flex shrink-0 items-center gap-2">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-gold text-bg">
               <Icon name="candle" className="size-5" />
             </span>
-            <span className="text-base font-semibold tracking-wide">
-              XAUUSD <span className="text-gold">課程</span>
+            <span className="site-brand nowrap text-sm font-semibold tracking-wide">
+              TP Trading <span className="text-gold">Society</span>
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             {profile?.powers.some((power) => STAFF_KEYS.includes(power)) ? (
-              <Link to="/staff" className="text-sm font-medium text-gold">
+              <Link to="/staff" className="nowrap text-sm font-medium text-gold">
                 後台
               </Link>
             ) : null}
@@ -86,10 +86,10 @@ function AccountMenu() {
   const label = profile.displayName || profile.email || "Account";
   return (
     <div className="flex items-center gap-2">
-      <span className="grid h-8 w-8 place-items-center rounded-full bg-black/10 text-sm font-medium dark:bg-white/20">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/10 text-sm font-medium dark:bg-white/20">
         {label.charAt(0).toUpperCase()}
       </span>
-      <span className="text-sm font-medium">{label}</span>
+      <span className="account-name text-sm font-medium">{label}</span>
       <button
         type="button"
         disabled={busy}
@@ -98,7 +98,7 @@ function AccountMenu() {
           signOut();
           window.location.assign("/login");
         }}
-        className="cursor-pointer text-sm font-medium text-muted hover:text-gold disabled:cursor-wait"
+        className="nowrap cursor-pointer text-sm font-medium text-muted hover:text-gold disabled:cursor-wait"
       >
         {busy ? "登出中…" : "登出"}
       </button>

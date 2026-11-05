@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyMembership, membershipView, personRecord } from "./course.js";
+import { applyMembership, membershipView, personRecord, seedDatabase, toProfile } from "./course.js";
 
 const now = new Date("2026-11-05T00:00:00.000Z").getTime();
 
@@ -108,4 +108,30 @@ test("applyMembership gives a new VIP about 30 days when no expiry is set", () =
 test("applyMembership rejects an unreadable expiry", () => {
   const user = { basic: false, vip: false, vipUntil: null };
   assert.throws(() => applyMembership(user, { vipUntil: "nope" }), /到期日不正確/);
+});
+
+test("seed includes locked01 and a locked region-jump alert", () => {
+  const db = seedDatabase();
+  const locked = db.users.find((user) => user.name === "locked01");
+  assert.ok(locked);
+  assert.equal(locked.id, "u-locked01");
+  assert.equal(locked.password, "locked123");
+  assert.equal(locked.role, "student");
+  assert.equal(locked.basic, false);
+  assert.equal(locked.vip, false);
+  assert.equal(locked.vipUntil, null);
+  assert.equal(locked.locked, true);
+  assert.equal(toProfile(locked, db).locked, true);
+
+  const alert = db.alerts.find((item) => item.userId === locked.id);
+  assert.ok(alert);
+  assert.equal(alert.displayName, "locked01");
+  assert.equal(alert.locked, true);
+  assert.equal(alert.detail, "locked01 在 8 秒內由「廣東 · 廣州」改為「北京 · 北京」登入");
+
+  for (const name of ["admin", "demo", "student01", "student02"]) {
+    const user = db.users.find((item) => item.name === name);
+    assert.ok(user);
+    assert.equal(user.locked, false);
+  }
 });

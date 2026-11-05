@@ -290,6 +290,25 @@ export function seedDatabase() {
   };
 }
 
+/** Compare login names and emails without changing stored text. */
+export function sameFold(left, right) {
+  return String(left ?? "").trim().toLowerCase() === String(right ?? "").trim().toLowerCase();
+}
+
+export function userByLoginName(users, name) {
+  const query = String(name ?? "").trim();
+  if (!query) return null;
+  return users.find((user) => sameFold(user.name, query)) ?? null;
+}
+
+export function accountTaken(users, { name, email } = {}) {
+  const login = String(name ?? "").trim();
+  if (login && users.some((user) => sameFold(user.name, login))) return "name";
+  const mail = String(email ?? "").trim();
+  if (mail && users.some((user) => sameFold(user.email, mail))) return "email";
+  return null;
+}
+
 export function vipActive(user, now = Date.now()) {
   if (!user) return false;
   if (user.role !== "student") return true;

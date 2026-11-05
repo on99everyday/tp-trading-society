@@ -1,10 +1,12 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import {
+  accountTaken,
   applyMembership,
   enabledPowers,
   personRecord,
   seedDatabase,
   toProfile,
+  userByLoginName,
   vipActive,
   videosOpen,
 } from "./course";
@@ -50,7 +52,7 @@ export function StoreProvider({ children }) {
       user,
       profile,
       signIn(name, password) {
-        const found = db.users.find((item) => item.name === name.trim());
+        const found = userByLoginName(db.users, name);
         if (!found || found.password !== password) {
           throw new Error("名稱或密碼不正確");
         }
@@ -61,18 +63,18 @@ export function StoreProvider({ children }) {
       },
       signUp({ name, email, password }) {
         const trimmed = name.trim();
-        if (db.users.some((item) => item.name === trimmed)) {
-          return { taken: true };
-        }
-        if (!email.trim() || password.length < 8) {
+        const mail = email.trim();
+        if (accountTaken(db.users, { name: trimmed })) return { taken: true, field: "name" };
+        if (!mail || password.length < 8) {
           throw new Error("註冊失敗");
         }
+        if (accountTaken(db.users, { email: mail })) return { taken: true, field: "email" };
         const id = `u-${crypto.randomUUID()}`;
         commit((next) => {
           next.users.push({
             id,
             name: trimmed,
-            email: email.trim(),
+            email: mail,
             password,
             role: "student",
             basic: false,
@@ -90,7 +92,7 @@ export function StoreProvider({ children }) {
         });
       },
       nameTaken(name) {
-        return db.users.some((item) => item.name === name.trim());
+        return accountTaken(db.users, { name }) === "name";
       },
       pay(plan) {
         if (!user) throw new Error("未能完成繳費");
@@ -198,10 +200,8 @@ export function StoreProvider({ children }) {
       },
       addAccount({ name, email, password }) {
         const trimmed = name.trim();
-        if (db.users.some((item) => item.name === trimmed)) throw new Error("此名稱已有人使用");
-        if (db.users.some((item) => item.email.toLowerCase() === email.trim().toLowerCase())) {
-          throw new Error("此電郵已有人使用");
-        }
+        if (accountTaken(db.users, { name: trimmed })) throw new Error("此名稱已有人使用");
+        if (accountTaken(db.users, { email })) throw new Error("此電郵已有人使用");
         if (password.length < 8) throw new Error("密碼至少 8 位");
         commit((next) => {
           next.users.push({

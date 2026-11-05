@@ -11,6 +11,7 @@ import {
   vipActive,
   videosOpen,
 } from "./course";
+import { applySettingsPatch, changeMemberPassword, mirrorSettings, renameMember } from "./settings/account";
 
 const KEY = "xauusd-course-spa";
 const StoreContext = createContext(null);
@@ -101,6 +102,46 @@ export function StoreProvider({ children }) {
           next.users = applyLocalPassword(next.users, email, password).users;
         });
         return true;
+      },
+      updateDisplayName(name) {
+        if (!user) throw new Error("未能更新顯示名稱。");
+        const result = renameMember(db.users, user.id, name);
+        if (!result.ok) throw new Error(result.message);
+        commit((next) => {
+          const row = next.users.find((item) => item.id === user.id);
+          if (row) row.name = result.name;
+        });
+        return result.name;
+      },
+      async updateSettings(patch) {
+        if (!user) throw new Error("未能儲存設定");
+        const nextSettings = applySettingsPatch(user, patch);
+        commit((next) => {
+          const row = next.users.find((item) => item.id === user.id);
+          if (!row) return;
+          row.settings = applySettingsPatch(row, patch);
+        });
+        const { getAuthClient } = await import("./auth/client");
+        const mirror = await mirrorSettings(getAuthClient(), nextSettings);
+        return { settings: nextSettings, mirror };
+      },
+      async changePassword({ currentPassword, nextPassword, confirm }) {
+        if (!user) throw new Error("未能更新密碼");
+        const { getAuthClient } = await import("./auth/client");
+        const result = await changeMemberPassword({
+          client: getAuthClient(),
+          user,
+          currentPassword,
+          nextPassword,
+          confirm,
+        });
+        if (result.updatedLocal) {
+          commit((next) => {
+            const row = next.users.find((item) => item.id === user.id);
+            if (row) row.password = nextPassword;
+          });
+        }
+        return result;
       },
       pay(plan) {
         if (!user) throw new Error("未能完成繳費");

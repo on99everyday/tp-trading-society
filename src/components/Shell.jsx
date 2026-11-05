@@ -90,6 +90,9 @@ function AccountMenu() {
         {label.charAt(0).toUpperCase()}
       </span>
       <span className="account-name text-sm font-medium">{label}</span>
+      <Link to="/settings" className="nowrap text-sm font-medium text-gold">
+        設定
+      </Link>
       <button
         type="button"
         disabled={busy}

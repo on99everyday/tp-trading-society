@@ -5,6 +5,7 @@ import { JoinPage } from "./pages/JoinPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PowersPage } from "./pages/PowersPage";
 import { QuizPage } from "./pages/QuizPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { StaffPage } from "./pages/StaffPage";
 import { VideosPage } from "./pages/VideosPage";
 import { VipPage } from "./pages/VipPage";
@@ -31,6 +32,7 @@ export function App() {
       <Route path="/quiz/:quizId" element={<QuizPage />} />
       <Route path="/vip" element={<VipPage />} />
       <Route path="/watch/:videoId" element={<WatchPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
       <Route path="/staff" element={<StaffPage />} />
       <Route path="/powers" element={<PowersPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

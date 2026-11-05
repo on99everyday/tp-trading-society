@@ -18,7 +18,7 @@ export const STAFF_KEYS = ["upload", "remove", "logs", "accounts", "roles", "pow
 
 export const AREAS = [
   { id: "videos", label: "教學短片區", detail: "按單元觀看已上架短片" },
-  { id: "quiz", label: "學園測驗區", detail: "用小測檢查是否真的學會" },
+  { id: "quiz", label: "學員測驗區", detail: "用小測檢查是否真的學會" },
   { id: "vip", label: "VIP群 復盤交流區", detail: "VIP 會員即時交流與覆盤" },
 ];
 

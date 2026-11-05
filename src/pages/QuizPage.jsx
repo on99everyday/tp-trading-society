@@ -21,8 +21,8 @@ function QuizArea({ profile }) {
 
   return (
     <Shell profile={profile}>
-      <p className="text-sm text-gold">學園測驗區</p>
-      <h1 className="mt-1 text-3xl font-semibold">{quiz ? quiz.title : "學園測驗"}</h1>
+      <p className="text-sm text-gold">學員測驗區</p>
+      <h1 className="mt-1 text-3xl font-semibold">{quiz ? quiz.title : "學員測驗"}</h1>
       <p className="mt-2 max-w-xl text-muted">{quiz ? quiz.blurb : "用小測檢查是否真的學會"}</p>
       <Link to={quizId ? "/quiz" : "/"} className="mt-3 inline-block text-sm font-medium text-gold">
         {quizId ? "返回測驗列表" : "返回課程首頁"}

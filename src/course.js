@@ -19,7 +19,7 @@ export const STAFF_KEYS = ["upload", "remove", "logs", "accounts", "roles", "pow
 export const AREAS = [
   { id: "videos", label: "教學短片區", detail: "按單元觀看已上架短片" },
   { id: "quiz", label: "學園測驗區", detail: "用小測檢查是否真的學會" },
-  { id: "vip", label: "VIP群 復盤交流區", detail: "工作人員在頻道發佈消息" },
+  { id: "vip", label: "VIP群 復盤交流區", detail: "VIP 會員即時交流與覆盤" },
 ];
 
 /** Quizzes copied from the live course route. Do not add questions here. */
@@ -255,11 +255,73 @@ export function seedDatabase() {
   };
 }
 
-export function vipActive(user) {
+export function vipActive(user, now = Date.now()) {
   if (!user) return false;
   if (user.role !== "student") return true;
   if (!user.vip || !user.vipUntil) return false;
-  return new Date(user.vipUntil).getTime() > Date.now();
+  return new Date(user.vipUntil).getTime() > now;
+}
+
+export function membershipView(person, now = Date.now()) {
+  const staff = person?.role === "admin" || person?.role === "staff";
+  const vipUntil = person?.vipUntil || null;
+  const untilMs = vipUntil ? new Date(vipUntil).getTime() : NaN;
+  const active = vipActive(
+    {
+      role: person?.role ?? "student",
+      vip: Boolean(person?.vip),
+      vipUntil,
+    },
+    now,
+  );
+  const basic = staff ? true : Boolean(person?.basic);
+  const labels = [];
+  if (!staff && basic) labels.push("基礎");
+  if (active) labels.push("VIP");
+  if (labels.length === 0) labels.push("未付費");
+  let expiry = "";
+  if (!staff && Number.isFinite(untilMs)) {
+    const day = String(vipUntil).slice(0, 10);
+    if (person?.vip && untilMs > now) expiry = `至 ${day}`;
+    else if (untilMs <= now) expiry = `已於 ${day} 到期`;
+  }
+  return { basic, vip: active, vipUntil, labels, expiry };
+}
+
+export function personRecord(user, now = Date.now()) {
+  const view = membershipView(user, now);
+  return {
+    userId: user.id,
+    displayName: user.name,
+    email: user.email,
+    role: user.role,
+    basic: view.basic,
+    vip: view.vip,
+    vipUntil: view.vipUntil,
+    labels: view.labels,
+    expiry: view.expiry,
+  };
+}
+
+export function applyMembership(user, patch, now = new Date()) {
+  if (!user) throw new Error("更新失敗");
+  if (typeof patch?.basic === "boolean") user.basic = patch.basic;
+  if (typeof patch?.vip === "boolean") user.vip = patch.vip;
+  if (patch && Object.prototype.hasOwnProperty.call(patch, "vipUntil")) {
+    if (patch.vipUntil === null || patch.vipUntil === "") user.vipUntil = null;
+    else {
+      const raw = String(patch.vipUntil);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T23:59:59.999Z`) : new Date(raw);
+      if (Number.isNaN(date.getTime())) throw new Error("到期日不正確");
+      user.vipUntil = date.toISOString();
+    }
+  }
+  if (user.vip && !user.vipUntil) {
+    const until = new Date(now);
+    until.setUTCDate(until.getUTCDate() + 30);
+    user.vipUntil = until.toISOString();
+  }
+  return user;
 }
 
 export function videosOpen(user) {

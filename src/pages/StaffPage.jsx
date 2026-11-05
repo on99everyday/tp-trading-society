@@ -398,14 +398,24 @@ function Logs() {
   );
 }
 
+function badgeClass(label) {
+  if (label === "VIP") return "badge badge-vip";
+  if (label === "基礎") return "badge badge-basic";
+  return "badge badge-unpaid";
+}
+
 function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
-  const { people, addAccount, setRole, deleteUser, signOut } = useStore();
+  const { people, addAccount, setRole, setMembership, deleteUser, signOut } = useStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [editing, setEditing] = useState("");
   const [role, setRoleValue] = useState("student");
+  const [planFor, setPlanFor] = useState("");
+  const [draftBasic, setDraftBasic] = useState(false);
+  const [draftVip, setDraftVip] = useState(false);
+  const [draftUntil, setDraftUntil] = useState("");
 
   return (
     <div className="mt-6 space-y-4">
@@ -466,11 +476,12 @@ function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
         </form>
       ) : null}
       <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="accounts-table w-full text-left text-sm">
           <thead className="border-b border-line text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">成員</th>
               <th className="px-4 py-3 font-medium">賬號</th>
+              <th className="px-4 py-3 font-medium">會籍</th>
               <th className="px-4 py-3 font-medium">角色</th>
               <th className="px-4 py-3 font-medium">操作</th>
             </tr>
@@ -490,6 +501,92 @@ function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted">{person.email}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {person.labels.map((label) => (
+                        <span key={label} className={badgeClass(label)}>
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                    {person.expiry ? <p className="membership-expiry">{person.expiry}</p> : null}
+                    {canRoles && person.role === "student" ? (
+                      planFor === person.userId ? (
+                        <form
+                          className="membership-form"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            try {
+                              let until = draftUntil;
+                              if (draftVip) {
+                                const end = until ? new Date(`${until}T23:59:59`).getTime() : NaN;
+                                if (!until || Number.isNaN(end) || end <= Date.now()) until = null;
+                              }
+                              setMembership(person.userId, {
+                                basic: draftBasic,
+                                vip: draftVip,
+                                vipUntil: draftVip ? until : person.vipUntil,
+                              });
+                              setPlanFor("");
+                              onChange("會籍已更新");
+                            } catch (err) {
+                              onError(err instanceof Error ? err.message : "更新失敗");
+                            }
+                          }}
+                        >
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="accent-gold"
+                              checked={draftBasic}
+                              onChange={(event) => setDraftBasic(event.target.checked)}
+                            />
+                            基礎
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className="accent-gold"
+                              checked={draftVip}
+                              onChange={(event) => setDraftVip(event.target.checked)}
+                            />
+                            VIP
+                          </label>
+                          {draftVip ? (
+                            <label className="flex items-center gap-2">
+                              到期日
+                              <input
+                                type="date"
+                                className="rounded-lg border border-line bg-bg px-2 py-1.5 text-fg"
+                                value={draftUntil}
+                                onChange={(event) => setDraftUntil(event.target.value)}
+                              />
+                            </label>
+                          ) : null}
+                          <button type="submit" className="text-gold">
+                            儲存
+                          </button>
+                          <button type="button" className="text-gold" onClick={() => setPlanFor("")}>
+                            取消
+                          </button>
+                          {draftVip ? <span className="text-muted">留空則由今天起計 30 日。</span> : null}
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mt-2 text-sm text-gold"
+                          onClick={() => {
+                            setPlanFor(person.userId);
+                            setDraftBasic(person.basic);
+                            setDraftVip(person.vip);
+                            setDraftUntil(person.vipUntil ? String(person.vipUntil).slice(0, 10) : "");
+                          }}
+                        >
+                          調整會籍
+                        </button>
+                      )
+                    ) : null}
+                  </td>
                   <td className="px-4 py-3">
                     {editingRow ? (
                       <select

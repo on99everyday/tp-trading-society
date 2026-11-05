@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import {
+  applyMembership,
   enabledPowers,
+  personRecord,
   seedDatabase,
   toProfile,
   vipActive,
@@ -215,6 +217,13 @@ export function StoreProvider({ children }) {
           });
         });
       },
+      setMembership(userId, patch) {
+        if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
+        commit((next) => {
+          const row = next.users.find((item) => item.id === userId);
+          if (row) applyMembership(row, patch);
+        });
+      },
       setRole(userId, role) {
         if (!["student", "staff", "admin"].includes(role)) throw new Error("更新失敗");
         if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
@@ -271,6 +280,27 @@ export function StoreProvider({ children }) {
               id: nextNumericId(next, "notifications"),
               userId: member.id,
               title: `#${channel.name} 有新消息`,
+              body: text.slice(0, 140),
+              href: `/vip?channel=${channelId}`,
+              read: false,
+              createdAt,
+            });
+          }
+        });
+      },
+      notifyAnnouncement({ channelId, channelName, body }) {
+        if (!profile?.vip) return;
+        const text = body.trim();
+        if (!text) return;
+        commit((next) => {
+          const createdAt = new Date().toISOString();
+          for (const member of next.users) {
+            const memberProfile = toProfile(member, next);
+            if (!memberProfile.vip || member.id === profile.id) continue;
+            next.notifications.unshift({
+              id: nextNumericId(next, "notifications"),
+              userId: member.id,
+              title: `#${channelName} 有新公告`,
               body: text.slice(0, 140),
               href: `/vip?channel=${channelId}`,
               read: false,
@@ -342,12 +372,7 @@ export function StoreProvider({ children }) {
         });
       },
       people() {
-        return db.users.map((item) => ({
-          userId: item.id,
-          displayName: item.name,
-          email: item.email,
-          role: item.role,
-        }));
+        return db.users.map((item) => personRecord(item));
       },
     };
   }, [db]);

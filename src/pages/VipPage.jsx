@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CHAT_NOT_CONFIGURED, readChatConfig } from "../chat/config";
 import { Icon } from "../icons";
 import { Pending, Shell, useAuthedProfile } from "../components/Shell";
 import { useStore } from "../store";
+
+const VipChat = lazy(() => import("./VipChat"));
+
+function chatReady() {
+  return readChatConfig({
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
+  }).configured;
+}
 
 export function VipPage() {
   const { profile, pending } = useAuthedProfile();
@@ -45,7 +55,7 @@ function Vip({ profile }) {
   return (
     <Shell profile={profile}>
       <p className="text-sm text-gold">VIP群 復盤交流區</p>
-      <h1 className="mt-1 text-3xl font-semibold">論壇頻道</h1>
+      <h1 className="mt-1 text-3xl font-semibold">{profile.vip && chatReady() ? "即時通訊" : "論壇頻道"}</h1>
       <Link to="/" className="mt-3 inline-block text-sm font-medium text-gold">
         返回課程首頁
       </Link>
@@ -57,8 +67,14 @@ function Vip({ profile }) {
             前往收費頁
           </Link>
         </p>
+      ) : chatReady() ? (
+        <Suspense fallback={<p className="mt-6 text-sm text-muted">正在連接即時通訊…</p>}>
+          <VipChat profile={profile} />
+        </Suspense>
       ) : (
-        <div className="mt-6 grid overflow-hidden rounded-xl border border-line bg-surface md:grid-cols-[260px_1fr]">
+        <>
+          <p className="chat-banner">{CHAT_NOT_CONFIGURED}</p>
+          <div className="mt-6 grid overflow-hidden rounded-xl border border-line bg-surface md:grid-cols-[260px_1fr]">
           <aside className="border-b border-line p-3 md:border-r md:border-b-0">
             <p className="px-2 text-xs font-medium text-muted">頻道</p>
             <ul className="mt-2 space-y-1">
@@ -181,6 +197,7 @@ function Vip({ profile }) {
             )}
           </section>
         </div>
+        </>
       )}
     </Shell>
   );

@@ -2,11 +2,6 @@ import { useEffect, useState } from "react";
 import { Icon } from "../icons";
 import { useStore } from "../store";
 
-const PROVIDERS = [
-  { providerId: "grok-google", label: "Google" },
-  { providerId: "grok-x", label: "X" },
-];
-
 export function LoginPage() {
   const { signIn, signUp, nameTaken } = useStore();
   const [mode, setMode] = useState("in");
@@ -140,23 +135,6 @@ export function LoginPage() {
             {busy ? "處理中…" : mode === "up" ? "建立帳號" : "登入"}
           </button>
         </form>
-        <div className="my-5 flex items-center gap-3 text-xs text-muted">
-          <span className="h-px flex-1 bg-line" />
-          或
-          <span className="h-px flex-1 bg-line" />
-        </div>
-        <div className="space-y-2">
-          {PROVIDERS.map((provider) => (
-            <button
-              key={provider.providerId}
-              type="button"
-              onClick={() => setError("此環境未設定 Grok OAuth。請用名稱與密碼登入。")}
-              className="w-full rounded-lg border border-line py-3 text-sm font-medium hover:border-gold"
-            >
-              使用 {provider.label} 繼續
-            </button>
-          ))}
-        </div>
       </div>
     </main>
   );

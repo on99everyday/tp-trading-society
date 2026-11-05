@@ -4,7 +4,7 @@
 
 `/` 是課程 SPA。登入後首頁有三個入口，和 [shadow-lotus-zippy-king.grok.me](https://shadow-lotus-zippy-king.grok.me) 同一產品表面。舊的靜態頁已移到 `archive/static-xauusd/`，不再作為網站入口。
 
-GitHub 上的 `on99everyday/shadow-lotus-zippy-king` 在這個環境讀不到（倉庫不存在或 token 沒有權限）。畫面、測驗題和流程是從該站已上線的 TanStack Start 套件還原的。測驗題沒有另外新增。Grok OAuth、better-auth 和資料庫沒有帶上；會員狀態、短片、頻道和觀看紀錄存在瀏覽器 `localStorage`（鍵名 `xauusd-course-spa`），所以 Vercel 正式環境不用額外秘密也能開啟三個區域。
+GitHub 上的 `on99everyday/shadow-lotus-zippy-king` 在這個環境讀不到（倉庫不存在或 token 沒有權限）。畫面、測驗題和流程是從該站已上線的 TanStack Start 套件還原的。測驗題沒有另外新增。better-auth 和資料庫沒有帶上；會員狀態、短片、頻道和觀看紀錄存在瀏覽器 `localStorage`（鍵名 `xauusd-course-spa`），所以 Vercel 正式環境不用額外秘密也能開啟三個區域。
 
 ## 示範登入
 
@@ -23,7 +23,7 @@ GitHub 上的 `on99everyday/shadow-lotus-zippy-king` 在這個環境讀不到（
 
 `locked01` 的種子資料含一筆異常地區提示（8 秒內由「廣東 · 廣州」改為「北京 · 北京」）。要在全新種子上測試，請清除瀏覽器 `localStorage` 鍵 `xauusd-course-spa`，或用尚未開過這個站的瀏覽器。已有舊資料的瀏覽器會沿用原本的會員與提示，不會自動補上這筆。
 
-新註冊的密碼至少 8 位。收費頁的「支付」在示範環境不會扣款，按下即開通。Google / X 登入需要 Grok OAuth，這裡未接上。
+新註冊的密碼至少 8 位。收費頁的「支付」在示範環境不會扣款，按下即開通。登入只使用名稱與密碼。
 
 ## 本機
 

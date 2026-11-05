@@ -193,6 +193,17 @@ export function seedDatabase() {
         vipUntil: null,
         locked: false,
       },
+      {
+        id: "u-locked01",
+        name: "locked01",
+        email: "locked01@tp-trading.local",
+        password: "locked123",
+        role: "student",
+        basic: false,
+        vip: false,
+        vipUntil: null,
+        locked: true,
+      },
     ],
     modules: [
       {
@@ -246,8 +257,32 @@ export function seedDatabase() {
     posts: [],
     emailOn: {},
     notifications: [],
-    logins: [],
-    alerts: [],
+    logins: [
+      {
+        userId: "u-locked01",
+        displayName: "locked01",
+        device: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)",
+        region: "廣東 · 廣州",
+        loggedAt: "2026-11-04T02:14:12.000Z",
+      },
+      {
+        userId: "u-locked01",
+        displayName: "locked01",
+        device: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        region: "北京 · 北京",
+        loggedAt: "2026-11-04T02:14:20.000Z",
+      },
+    ],
+    alerts: [
+      {
+        id: 1,
+        userId: "u-locked01",
+        displayName: "locked01",
+        detail: "locked01 在 8 秒內由「廣東 · 廣州」改為「北京 · 北京」登入",
+        createdAt: "2026-11-04T02:14:20.000Z",
+        locked: true,
+      },
+    ],
     watches: [],
     powers: defaultPowerRows(),
     sessionId: null,

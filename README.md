@@ -1,6 +1,6 @@
 # TP Trading Society
 
-XAUUSD 課程（教學短片區、學園測驗區、VIP群 復盤交流區）。
+網站標題是 TP Trading Society。課程仍是 XAUUSD（教學短片區、學園測驗區、VIP群 復盤交流區）。
 
 `/` 是課程 SPA。登入後首頁有三個入口，和 [shadow-lotus-zippy-king.grok.me](https://shadow-lotus-zippy-king.grok.me) 同一產品表面。舊的靜態頁已移到 `archive/static-xauusd/`，不再作為網站入口。
 
@@ -19,6 +19,9 @@ GitHub 上的 `on99everyday/shadow-lotus-zippy-king` 在這個環境讀不到（
 | `student03` | `trade666` | 同上 |
 | `student04` | `fx2024` | 同上 |
 | `student05` | `xau8888` | 同上 |
+| `locked01` | `locked123` | 未付費學員，已封控。後台「登入封控」會顯示「解除封控」 |
+
+`locked01` 的種子資料含一筆異常地區提示（8 秒內由「廣東 · 廣州」改為「北京 · 北京」）。要在全新種子上測試，請清除瀏覽器 `localStorage` 鍵 `xauusd-course-spa`，或用尚未開過這個站的瀏覽器。已有舊資料的瀏覽器會沿用原本的會員與提示，不會自動補上這筆。
 
 新註冊的密碼至少 8 位。收費頁的「支付」在示範環境不會扣款，按下即開通。Google / X 登入需要 Grok OAuth，這裡未接上。
 

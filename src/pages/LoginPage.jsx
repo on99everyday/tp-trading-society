@@ -64,7 +64,7 @@ export function LoginPage() {
             <Icon name="candle" className="size-5" />
           </span>
           <div>
-            <h1 className="text-xl font-semibold">XAUUSD 課程</h1>
+            <h1 className="text-xl font-semibold">TP Trading Society</h1>
             <p className="text-sm text-muted">註冊後會前往收費頁。登入請用註冊時的名稱。</p>
           </div>
         </div>

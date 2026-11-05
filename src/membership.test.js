@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyMembership, membershipView, personRecord, seedDatabase, toProfile } from "./course.js";
+import {
+  accountTaken,
+  applyMembership,
+  membershipView,
+  personRecord,
+  seedDatabase,
+  toProfile,
+  userByLoginName,
+} from "./course.js";
 
 const now = new Date("2026-11-05T00:00:00.000Z").getTime();
 
@@ -108,6 +116,25 @@ test("applyMembership gives a new VIP about 30 days when no expiry is set", () =
 test("applyMembership rejects an unreadable expiry", () => {
   const user = { basic: false, vip: false, vipUntil: null };
   assert.throws(() => applyMembership(user, { vipUntil: "nope" }), /到期日不正確/);
+});
+
+test("login name matches regardless of letter case and leaves the stored name", () => {
+  const db = seedDatabase();
+  const stored = db.users.find((user) => user.name === "locked01");
+  assert.equal(userByLoginName(db.users, "LOCKED01")?.id, "u-locked01");
+  assert.equal(userByLoginName(db.users, "Locked01")?.id, "u-locked01");
+  assert.equal(userByLoginName(db.users, " locked01 ")?.id, "u-locked01");
+  assert.equal(userByLoginName(db.users, "locked123"), null);
+  assert.equal(stored.name, "locked01");
+  assert.equal(stored.password, "locked123");
+});
+
+test("sign-up treats the same name or email as taken ignoring case", () => {
+  const db = seedDatabase();
+  assert.equal(accountTaken(db.users, { name: "LOCKED01" }), "name");
+  assert.equal(accountTaken(db.users, { email: "LOCKED01@tp-trading.local" }), "email");
+  assert.equal(accountTaken(db.users, { name: "newstudent", email: "Admin@tp-trading.local" }), "email");
+  assert.equal(accountTaken(db.users, { name: "fresh-name", email: "fresh@example.com" }), null);
 });
 
 test("seed includes locked01 and a locked region-jump alert", () => {

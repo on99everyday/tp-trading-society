@@ -39,7 +39,7 @@ export function LoginPage() {
         }
         const result = signUp({ name: trimmed, email, password });
         if (result.taken) {
-          setError("此名稱已有人使用");
+          setError(result.field === "email" ? "此電郵已有人使用" : "此名稱已有人使用");
           return;
         }
         window.location.assign("/join");

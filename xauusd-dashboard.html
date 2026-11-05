@@ -328,6 +328,21 @@
       color: var(--gold);
     }
 
+    .module-pending {
+      margin-top: 10px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .module-card.pending {
+      cursor: default;
+    }
+
+    .module-card.pending:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
     /* Notice */
     .notice {
       background: rgba(212, 175, 55, 0.08);
@@ -452,7 +467,7 @@
 
   <header class="header">
     <div class="header-inner">
-      <a href="#" class="logo">
+      <a href="xauusd-dashboard.html" class="logo">
         <div class="logo-icon">
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L3 7v2h18V7L12 2zm0 2.2L17.5 7H6.5L12 4.2zM5 11v8h2v-8H5zm4 0v8h2v-8H9zm4 0v8h2v-8h-2zm4 0v8h2v-8h-2zM3 21h18v2H3v-2z"/>
@@ -617,21 +632,29 @@
       const videos = JSON.parse(localStorage.getItem('xauusd_videos') || '[]');
 
       container.innerHTML = MODULES.map(m => {
-        const st = statusLabel(m.status);
-        const lockedClass = m.status === 'locked' ? ' locked' : '';
         const moduleVideos = videos.filter(v => v.moduleName && v.moduleName.startsWith(m.num));
+        const pendingUpload = m.status === 'available' && moduleVideos.length === 0;
+        const st = pendingUpload
+          ? { text: '尚未上載', class: 'locked' }
+          : statusLabel(m.status);
+        const cardClass = m.status === 'locked' ? ' locked' : (pendingUpload ? ' pending' : '');
+        const cardStatus = pendingUpload ? 'pending' : m.status;
         const videoList = moduleVideos.map(v => `
           <div style="margin-top:10px;padding:8px 10px;background:rgba(212,175,55,.08);border-radius:8px;font-size:.85rem;">
             <a href="xauusd-video.html?id=${v.id}" style="color:#f0d78c;text-decoration:none;">▶ ${v.title}</a>
           </div>
         `).join('');
+        const pendingNote = pendingUpload
+          ? '<p class="module-pending">尚未上載短片</p>'
+          : '';
 
         return `
-          <div class="module-card${lockedClass}" data-id="${m.id}" data-status="${m.status}">
+          <div class="module-card${cardClass}" data-id="${m.id}" data-status="${cardStatus}">
             <div class="module-num">${m.num}</div>
             <div class="module-title">${m.title}</div>
             <div class="module-desc">${m.desc}</div>
             ${videoList}
+            ${pendingNote}
             <div class="module-meta" style="margin-top:12px;">
               <span>${m.duration}</span>
               <span class="module-status ${st.class}">${st.text}</span>
@@ -647,9 +670,11 @@
           const mod = MODULES.find(m => m.id === parseInt(card.dataset.id));
           if (!mod) return;
           if (status === 'locked') {
-            openModal(mod.title, '此單元尚未開放，請先完成前面的課程單元。');
+            openModal(mod.title, '此單元尚未開放，請先完成前面的課程單元。', false);
+          } else if (status === 'pending') {
+            openModal(mod.title, '尚未上載短片。', false);
           } else {
-            openModal(mod.title, mod.desc);
+            openModal(mod.title, mod.desc, true);
           }
         });
       });
@@ -660,9 +685,10 @@
     const modalTitle = document.getElementById('modalTitle');
     const modalDesc = document.getElementById('modalDesc');
 
-    function openModal(title, desc) {
+    function openModal(title, desc, canStart) {
       modalTitle.textContent = title;
       modalDesc.textContent = desc;
+      document.getElementById('modalStart').hidden = !canStart;
       modal.classList.add('show');
     }
 

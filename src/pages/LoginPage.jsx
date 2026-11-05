@@ -10,7 +10,6 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
-  const [resetHint, setResetHint] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -22,13 +21,11 @@ export function LoginPage() {
   function switchMode(next) {
     setMode(next);
     setError("");
-    setResetHint(false);
   }
 
   async function onSubmit(event) {
     event.preventDefault();
     setError("");
-    setResetHint(false);
     setBusy(true);
     try {
       const trimmed = name.trim();
@@ -134,23 +131,6 @@ export function LoginPage() {
               </button>
             </span>
           </label>
-          {mode === "in" ? (
-            <div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className="text-sm font-medium text-gold"
-                  onClick={() => {
-                    setError("");
-                    setResetHint(true);
-                  }}
-                >
-                  忘記密碼
-                </button>
-              </div>
-              {resetHint ? <p className="mt-2 text-sm text-muted">請聯絡工作人員或管理員重設密碼。</p> : null}
-            </div>
-          ) : null}
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <button
             type="submit"
@@ -160,7 +140,68 @@ export function LoginPage() {
             {busy ? "處理中…" : mode === "up" ? "建立帳號" : "登入"}
           </button>
         </form>
+        {mode === "in" ? <ForgotPassword /> : null}
       </div>
     </main>
+  );
+}
+
+function ForgotPassword() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(event) {
+    event.preventDefault();
+    setMessage("");
+    setError("");
+    setBusy(true);
+    try {
+      const [{ getAuthClient }, { requestPasswordReset }] = await Promise.all([
+        import("../auth/client"),
+        import("../auth/reset"),
+      ]);
+      const result = await requestPasswordReset(getAuthClient(), email, window.location.origin);
+      if (result.ok) setMessage(result.message);
+      else setError(result.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="flex justify-end">
+        <button type="button" className="text-sm font-medium text-gold" onClick={() => setOpen((value) => !value)}>
+          忘記密碼
+        </button>
+      </div>
+      {open ? (
+        <form className="mt-3 space-y-3" onSubmit={onSubmit}>
+          <label className="block text-sm text-muted">
+            登記電郵
+            <input
+              type="email"
+              autoComplete="email"
+              required
+              className="mt-1 w-full rounded-lg border border-line bg-bg px-3 py-3 text-fg outline-none focus:border-gold"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </label>
+          {message ? <p className="text-sm text-muted">{message}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-lg border border-gold py-3 font-semibold text-gold disabled:opacity-60"
+          >
+            {busy ? "寄出中…" : "寄出重設連結"}
+          </button>
+        </form>
+      ) : null}
+    </div>
   );
 }

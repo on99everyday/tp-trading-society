@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from "react";
+import { applyLocalPassword } from "./auth/reset";
 import {
   accountTaken,
   applyMembership,
@@ -93,6 +94,13 @@ export function StoreProvider({ children }) {
       },
       nameTaken(name) {
         return accountTaken(db.users, { name }) === "name";
+      },
+      setPasswordForEmail(email, password) {
+        if (!applyLocalPassword(db.users, email, password).updated) return false;
+        commit((next) => {
+          next.users = applyLocalPassword(next.users, email, password).users;
+        });
+        return true;
       },
       pay(plan) {
         if (!user) throw new Error("未能完成繳費");

@@ -1,6 +1,6 @@
 # TP Trading Society
 
-網站標題是 TP Trading Society。課程仍是 XAUUSD（教學短片區、學園測驗區、VIP群 復盤交流區）。
+網站標題是 TP Trading Society。課程仍是 XAUUSD（教學短片區、學員測驗區、VIP群 復盤交流區）。
 
 `/` 是課程 SPA。登入後首頁有三個入口，和 [shadow-lotus-zippy-king.grok.me](https://shadow-lotus-zippy-king.grok.me) 同一產品表面。舊的靜態頁已移到 `archive/static-xauusd/`，不再作為網站入口。
 

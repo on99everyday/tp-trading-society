@@ -25,7 +25,7 @@ GitHub 上的 `on99everyday/shadow-lotus-zippy-king` 在這個環境讀不到（
 
 新註冊的密碼至少 8 位。收費頁的「支付」在示範環境不會扣款，按下即開通。登入只使用名稱與密碼。密碼區分大細楷。
 
-忘記密碼會請學員填登記電郵，並用 Supabase Auth 的 `resetPasswordForEmail` 寄出重設連結。連結回到 `/reset`，學員在那裡設定新密碼。沒有 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY` 時，頁面只會說明尚未設定，不會寄信。示範帳號目前仍以瀏覽器 `localStorage` 的密碼登入；重設成功後，只會改這部瀏覽器裡電郵相符的課程帳號。Supabase 裡還沒有這個電郵的 Auth 用戶時，信不會送到。設定步驟寫在重設密碼的 pull request。
+忘記密碼會請學員填登記電郵，並用 Supabase Auth 的 `resetPasswordForEmail` 寄出重設連結。連結一律回到 `https://tp-trading-society.vercel.app/reset`，學員在那裡設定新密碼。沒有 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY` 時，頁面只會說明尚未設定，不會寄信。示範帳號目前仍以瀏覽器 `localStorage` 的密碼登入；重設成功後，只會改這部瀏覽器裡電郵相符的課程帳號。Supabase 裡還沒有這個電郵的 Auth 用戶時，信不會送到。Site URL、Redirect URLs 和郵件模板的設定寫在重設密碼的 pull request。
 
 ## 本機
 

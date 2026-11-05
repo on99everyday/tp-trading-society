@@ -163,7 +163,7 @@ function ForgotPassword() {
         import("../auth/client"),
         import("../auth/reset"),
       ]);
-      const result = await requestPasswordReset(getAuthClient(), email, window.location.origin);
+      const result = await requestPasswordReset(getAuthClient(), email);
       if (result.ok) setMessage(result.message);
       else setError(result.message);
     } finally {

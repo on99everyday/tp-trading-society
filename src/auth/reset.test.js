@@ -8,12 +8,14 @@ import {
   openRecovery,
   requestPasswordReset,
   resetErrorMessage,
+  RESET_SITE_ORIGIN,
   resetRedirect,
   validateNewPassword,
 } from "./reset.js";
 
-test("reset redirect points at /reset on the site origin", () => {
-  assert.equal(resetRedirect("https://course.example"), "https://course.example/reset");
+test("reset redirect always returns to the production /reset page", () => {
+  assert.equal(RESET_SITE_ORIGIN, "https://tp-trading-society.vercel.app");
+  assert.equal(resetRedirect(), "https://tp-trading-society.vercel.app/reset");
 });
 
 test("new password stays case-sensitive and must be confirmed", () => {
@@ -35,7 +37,7 @@ test("local password update matches email case and keeps the stored name", () =>
 });
 
 test("requestPasswordReset refuses when Supabase is not configured", async () => {
-  const result = await requestPasswordReset(null, "a@b.com", "https://course.example");
+  const result = await requestPasswordReset(null, "a@b.com");
   assert.equal(result.ok, false);
   assert.equal(result.message, RESET_UNCONFIGURED);
 });
@@ -50,11 +52,11 @@ test("requestPasswordReset calls resetPasswordForEmail with the redirect", async
       },
     },
   };
-  const result = await requestPasswordReset(client, " Student@Example.com ", "https://course.example");
+  const result = await requestPasswordReset(client, " Student@Example.com ");
   assert.equal(result.ok, true);
   assert.equal(result.message, RESET_SENT);
   assert.equal(calls[0].email, "Student@Example.com");
-  assert.equal(calls[0].options.redirectTo, "https://course.example/reset");
+  assert.equal(calls[0].options.redirectTo, "https://tp-trading-society.vercel.app/reset");
 });
 
 test("reset errors stay in Traditional Chinese", () => {

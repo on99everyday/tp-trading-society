@@ -1,12 +1,13 @@
 import { sameFold } from "../course.js";
 
+export const RESET_SITE_ORIGIN = "https://tp-trading-society.vercel.app";
 export const RESET_UNCONFIGURED = "重設密碼尚未設定。請聯絡工作人員。";
 export const RESET_SENT = "如果這個電郵已登記，我們已寄出重設連結。請查看收件箱。";
 export const RESET_EXPIRED = "這個重設連結無效或已過期。請回到登入頁再申請一次。";
 export const RESET_OPEN_FROM_EMAIL = "請從電郵中的連結開啟此頁。";
 
-export function resetRedirect(origin) {
-  return new URL("/reset", origin).toString();
+export function resetRedirect() {
+  return new URL("/reset", RESET_SITE_ORIGIN).toString();
 }
 
 export function validateNewPassword(password, confirm) {
@@ -33,10 +34,10 @@ export function applyLocalPassword(users, email, password) {
   return { users: next, updated };
 }
 
-export async function requestPasswordReset(client, email, origin) {
+export async function requestPasswordReset(client, email) {
   if (!client) return { ok: false, message: RESET_UNCONFIGURED };
   const { error } = await client.auth.resetPasswordForEmail(String(email || "").trim(), {
-    redirectTo: resetRedirect(origin),
+    redirectTo: resetRedirect(),
   });
   if (error) return { ok: false, message: resetErrorMessage(error) };
   return { ok: true, message: RESET_SENT };

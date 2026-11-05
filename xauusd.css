@@ -16,6 +16,16 @@ body {
   color: var(--fg);
   font-family: "Noto Sans TC", ui-sans-serif, system-ui, sans-serif;
 }
+.entry-note {
+  margin: 0;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  background: #1c1408;
+  border-bottom: 1px solid var(--line);
+}
+.entry-note a { color: var(--gold); }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 .top {

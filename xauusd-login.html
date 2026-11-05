@@ -445,7 +445,7 @@
             <input type="checkbox" id="remember" name="remember" />
             記住我
           </label>
-          <a href="#" class="forgot" id="forgotLink">忘記密碼？</a>
+          <a href="javascript:void(0)" class="forgot" id="forgotLink" role="button">忘記密碼？</a>
         </div>
 
         <button type="submit" class="btn-login" id="loginBtn">
@@ -457,8 +457,7 @@
       </form>
 
       <div class="footer-note">
-        還沒有帳號？請聯繫課程管理員開通<br />
-        <a href="mailto:admin@example.com">admin@example.com</a>
+        還沒有帳號？請聯繫課程管理員開通
       </div>
     </div>
   </div>
@@ -602,7 +601,7 @@
     // 忘記密碼提示
     document.getElementById('forgotLink').addEventListener('click', (e) => {
       e.preventDefault();
-      alert('請聯繫課程管理員重置密碼。\nEmail：admin@example.com');
+      alert('請聯繫課程管理員重置密碼。');
     });
 
     // 初始化

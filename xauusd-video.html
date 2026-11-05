@@ -65,12 +65,6 @@
       padding: 20px;
       line-height: 1.7;
     }
-    .back {
-      display: inline-block;
-      margin-bottom: 20px;
-      color: var(--gold);
-      text-decoration: none;
-    }
   </style>
 </head>
 <body>
@@ -79,7 +73,6 @@
     <span id="userLabel"></span>
   </header>
   <div class="container">
-    <a href="xauusd-dashboard.html" class="back">← 返回</a>
     <h1 id="videoTitle">載入中...</h1>
     <div class="meta" id="videoMeta"></div>
     <div class="video-wrapper" id="player"></div>
@@ -116,7 +109,7 @@
     const video = videos.find(v => v.id === videoId);
 
     if (!video) {
-      document.body.innerHTML = '<div style="padding:40px;text-align:center;">找不到此短片<br><a href="xauusd-dashboard.html" style="color:#d4af37;">返回</a></div>';
+      document.body.innerHTML = '<div style="padding:48px 24px;text-align:center;font-family:\'Noto Sans TC\',sans-serif;"><h1 style="font-size:1.4rem;margin-bottom:12px;">找不到此短片</h1><p style="color:#9ca3af;margin-bottom:20px;">請從課程中心選擇短片</p><a href="xauusd-dashboard.html" style="color:#d4af37;font-weight:600;text-decoration:none;">← 返回課程中心</a></div>';
       throw new Error('no video');
     }
 

@@ -23,6 +23,9 @@
 .membership-expiry{margin-top:.35rem;font-size:.75rem;color:#9aa3af}
 .membership-form{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-top:.6rem;font-size:.875rem}
 .accounts-table{min-width:880px}
+.powers-table{min-width:760px}
+.ledger-table{min-width:980px}
+.rate-input{width:6rem}
 .nowrap{white-space:nowrap}
 .account-name{display:none}
 @media (width>=40rem){

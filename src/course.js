@@ -1,6 +1,7 @@
 export const ROLES = [
   { id: "student", label: "學員" },
   { id: "staff", label: "工作人員" },
+  { id: "accountant", label: "會計" },
   { id: "admin", label: "管理員" },
 ];
 
@@ -10,8 +11,9 @@ export const PERMISSIONS = [
   { key: "remove", label: "移除短片", detail: "從課程中刪除已上架的短片。" },
   { key: "logs", label: "查看觀看紀錄", detail: "查看每位學員的觀看次數與累計時間。" },
   { key: "accounts", label: "新增帳號", detail: "建立學員的登入名稱與密碼。" },
-  { key: "roles", label: "調換人員角色", detail: "把人員改為學員、工作人員或管理員。" },
+  { key: "roles", label: "調換人員角色", detail: "把人員改為學員、工作人員、會計或管理員。" },
   { key: "powers", label: "修改角色權力", detail: "開關各角色可以使用的功能。" },
+  { key: "accounting", label: "佣金帳目", detail: "查看介紹人佣金、明細與 CSV。不會開通其他後台功能。" },
 ];
 
 export const STAFF_KEYS = ["upload", "remove", "logs", "accounts", "roles", "powers"];
@@ -103,8 +105,17 @@ export function defaultPowerRows() {
 
 function defaultEnabled(role, key) {
   if (role === "admin") return true;
+  if (role === "accountant") return key === "accounting";
   if (role === "staff") return ["watch", "upload", "remove", "logs", "accounts"].includes(key);
   return key === "watch";
+}
+
+export function assertAssignableRole(role) {
+  if (!ROLES.some((item) => item.id === role)) throw new Error("更新失敗");
+}
+
+function complimentaryMember(user) {
+  return user?.role === "admin" || user?.role === "staff";
 }
 
 function plusDays(days) {
@@ -309,6 +320,8 @@ export function seedDatabase() {
     ],
     watches: [],
     powers: defaultPowerRows(),
+    commissionRate: 0.1,
+    commissions: [],
     sessionId: null,
     nextId: 100,
   };
@@ -503,7 +516,7 @@ export function remintAccountSuffix(user, users, random = Math.random) {
 
 export function vipActive(user, now = Date.now()) {
   if (!user) return false;
-  if (user.role !== "student") return true;
+  if (complimentaryMember(user)) return true;
   if (!user.vip || !user.vipUntil) return false;
   return new Date(user.vipUntil).getTime() > now;
 }
@@ -573,7 +586,7 @@ export function applyMembership(user, patch, now = new Date()) {
 
 export function videosOpen(user) {
   if (!user) return false;
-  if (user.role !== "student") return true;
+  if (complimentaryMember(user)) return true;
   return Boolean(user.basic) || vipActive(user);
 }
 
@@ -592,7 +605,7 @@ export function toProfile(user, db) {
     videos: videosOpen(user),
     vip: vipActive(user),
     vipUntil: user.vipUntil,
-    basic: user.role !== "student" ? true : Boolean(user.basic),
+    basic: complimentaryMember(user) ? true : Boolean(user.basic),
     locked: Boolean(user.locked) && user.role === "student",
     accountCode: normalizedAccountCode(user.accountCode),
   };
@@ -622,7 +635,5 @@ export function formatDuration(seconds) {
 }
 
 export function roleLabel(role) {
-  if (role === "admin") return "管理員";
-  if (role === "staff") return "工作人員";
-  return "學員";
+  return ROLES.find((item) => item.id === role)?.label ?? "學員";
 }

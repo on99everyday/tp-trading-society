@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AccountingPage } from "./pages/AccountingPage";
 import { HomePage } from "./pages/HomePage";
 import { JoinPage } from "./pages/JoinPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -34,6 +35,7 @@ export function App() {
       <Route path="/watch/:videoId" element={<WatchPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/staff" element={<StaffPage />} />
+      <Route path="/accounting" element={<AccountingPage />} />
       <Route path="/powers" element={<PowersPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

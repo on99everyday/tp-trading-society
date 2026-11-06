@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { STAFF_KEYS, formatDuration, roleLabel } from "../course";
+import { ROLES, STAFF_KEYS, formatDuration, roleLabel } from "../course";
 import { Icon } from "../icons";
 import { Pending, PowerTable, Shell, useAuthedProfile } from "../components/Shell";
 import { useStore } from "../store";
@@ -44,7 +44,7 @@ function Staff({ profile }) {
 
   return (
     <Shell profile={profile}>
-      <p className="text-sm text-gold">{profile.role === "admin" ? "管理員" : "工作人員"}</p>
+      <p className="text-sm text-gold">{roleLabel(profile.role)}</p>
       <h1 className="mt-1 text-3xl font-semibold">後台</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
         短片檔案請放到你的雲端（例如 Cloudflare R2、Amazon S3，或 YouTube 非公開影片）。這裡只保存可播放的 https
@@ -109,7 +109,7 @@ function Staff({ profile }) {
             <section className="mt-6">
               <h2 className="text-lg font-semibold">角色權力</h2>
               <p className="mt-1 mb-3 text-sm text-muted">
-                開關學員、工作人員和管理員可以使用的功能。管理員的「修改角色權力」不能關閉。
+                開關學員、工作人員、會計和管理員可以使用的功能。會計預設只有佣金帳目。管理員的「修改角色權力」不能關閉。
               </p>
               <PowerTable
                 rows={store.db.powers}
@@ -674,9 +674,11 @@ function Accounts({ selfEmail, canAccounts, canRoles, canManageCodes, onChange, 
                         value={role}
                         onChange={(event) => setRoleValue(event.target.value)}
                       >
-                        <option value="student">學員</option>
-                        <option value="staff">工作人員</option>
-                        <option value="admin">管理員</option>
+                        {ROLES.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.label}
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       roleLabel(person.role)
@@ -724,9 +726,7 @@ function Accounts({ selfEmail, canAccounts, canRoles, canManageCodes, onChange, 
                             className="text-gold"
                             onClick={() => {
                               setEditing(person.userId);
-                              setRoleValue(
-                                person.role === "admin" || person.role === "staff" ? person.role : "student",
-                              );
+                              setRoleValue(ROLES.some((item) => item.id === person.role) ? person.role : "student");
                             }}
                           >
                             編輯

@@ -1,8 +1,15 @@
 import { createContext, useContext, useMemo, useState } from "react";
+import {
+  applyCommissionRate,
+  applySuccessfulPayment,
+  canEditCommissionRate,
+  ensureLedger,
+} from "./accounting";
 import { applyLocalPassword } from "./auth/reset";
 import {
   accountTaken,
   applyMembership,
+  assertAssignableRole,
   assignTeamPrefix,
   enabledPowers,
   memberFromSignup,
@@ -28,9 +35,19 @@ function loadDatabase() {
     if (!raw) return seedDatabase();
     const parsed = JSON.parse(raw);
     const { db, changed } = prepareDatabase(parsed);
-    if (changed) {
+    const ledgerChanged = ensureLedger(db);
+    if (changed || ledgerChanged) {
       try {
-        localStorage.setItem(KEY, JSON.stringify({ ...parsed, users: db.users }));
+        localStorage.setItem(
+          KEY,
+          JSON.stringify({
+            ...parsed,
+            users: db.users,
+            powers: db.powers,
+            commissions: db.commissions,
+            commissionRate: db.commissionRate,
+          }),
+        );
       } catch {
         // Quota or private-mode failures still leave the backfilled copy in memory.
       }
@@ -157,16 +174,17 @@ export function StoreProvider({ children }) {
       },
       pay(plan) {
         if (!user) throw new Error("未能完成繳費");
+        if (plan !== "basic" && plan !== "vip") throw new Error("未能完成繳費");
         commit((next) => {
-          const row = next.users.find((item) => item.id === user.id);
-          if (!row) return;
-          if (plan === "basic") row.basic = true;
-          if (plan === "vip") {
-            const until = new Date();
-            until.setDate(until.getDate() + 30);
-            row.vip = true;
-            row.vipUntil = until.toISOString();
-          }
+          applySuccessfulPayment(next, user.id, plan);
+        });
+      },
+      setCommissionRate(percent) {
+        if (!canEditCommissionRate(profile)) throw new Error("只有管理員可以調整佣金比例");
+        const draft = { commissionRate: db.commissionRate };
+        applyCommissionRate(draft, percent);
+        commit((next) => {
+          next.commissionRate = draft.commissionRate;
         });
       },
       recordLogin(device, region) {
@@ -301,7 +319,7 @@ export function StoreProvider({ children }) {
         });
       },
       setRole(userId, role) {
-        if (!["student", "staff", "admin"].includes(role)) throw new Error("更新失敗");
+        assertAssignableRole(role);
         if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
         commit((next) => {
           const row = next.users.find((item) => item.id === userId);

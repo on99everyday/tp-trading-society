@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { PERMISSIONS, ROLES, STAFF_KEYS } from "../course";
+import { headerLinks } from "../accounting";
+import { PERMISSIONS, ROLES } from "../course";
 import { Icon } from "../icons";
 import { useStore } from "../store";
 
@@ -56,11 +57,11 @@ export function Shell({ profile, children }) {
             </span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
-            {profile?.powers.some((power) => STAFF_KEYS.includes(power)) ? (
-              <Link to="/staff" className="nowrap text-sm font-medium text-gold">
-                後台
+            {headerLinks(profile).map((link) => (
+              <Link key={link.href} to={link.href} className="nowrap text-sm font-medium text-gold">
+                {link.label}
               </Link>
-            ) : null}
+            ))}
             <Notifications enabled={profile != null} />
             <AccountMenu />
           </div>
@@ -210,7 +211,7 @@ export function PowerTable({ rows, onChange }) {
   }
   return (
     <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="powers-table w-full text-left text-sm">
         <thead className="border-b border-line text-muted">
           <tr>
             <th className="px-4 py-3 font-medium">功能</th>

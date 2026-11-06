@@ -7,6 +7,7 @@ export function LoginPage() {
   const [mode, setMode] = useState("in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +35,7 @@ export function LoginPage() {
           setError("此名稱已有人使用");
           return;
         }
-        const result = signUp({ name: trimmed, email, password });
+        const result = signUp({ name: trimmed, email, password, inviteCode });
         if (result.taken) {
           setError(result.field === "email" ? "此電郵已有人使用" : "此名稱已有人使用");
           return;
@@ -49,8 +50,9 @@ export function LoginPage() {
         return;
       }
       window.location.assign("/");
-    } catch {
-      setError(mode === "up" ? "註冊失敗" : "登入服務暫時無法使用");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(mode === "up" ? message || "註冊失敗" : "登入服務暫時無法使用");
     } finally {
       setBusy(false);
     }
@@ -105,8 +107,25 @@ export function LoginPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-              />
-            </label>
+            />
+          </label>
+          ) : null}
+          {mode === "up" ? (
+            <>
+              <label className="block text-sm text-muted">
+                會員邀請碼
+                <input
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className="mt-1 w-full rounded-lg border border-line bg-bg px-3 py-3 text-fg outline-none focus:border-gold"
+                  placeholder="選填，例如 TP1001"
+                  value={inviteCode}
+                  onChange={(event) => setInviteCode(event.target.value)}
+                />
+              </label>
+              <p className="text-xs text-muted">有邀請碼會加入對方的團隊。留空則是無團隊自來客。</p>
+            </>
           ) : null}
           <label className="block text-sm text-muted">
             密碼

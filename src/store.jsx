@@ -3,8 +3,14 @@ import { applyLocalPassword } from "./auth/reset";
 import {
   accountTaken,
   applyMembership,
+  assignTeamPrefix,
   enabledPowers,
+  memberFromSignup,
+  normalizeTeamPrefix,
   personRecord,
+  prepareDatabase,
+  referrerIdForInvite,
+  remintAccountSuffix,
   seedDatabase,
   toProfile,
   userByLoginName,
@@ -21,8 +27,15 @@ function loadDatabase() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return seedDatabase();
     const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.users) || parsed.users.length === 0) return seedDatabase();
-    return { ...seedDatabase(), ...parsed };
+    const { db, changed } = prepareDatabase(parsed);
+    if (changed) {
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ ...parsed, users: db.users }));
+      } catch {
+        // Quota or private-mode failures still leave the backfilled copy in memory.
+      }
+    }
+    return db;
   } catch {
     return seedDatabase();
   }
@@ -63,7 +76,7 @@ export function StoreProvider({ children }) {
         });
         return found;
       },
-      signUp({ name, email, password }) {
+      signUp({ name, email, password, inviteCode }) {
         const trimmed = name.trim();
         const mail = email.trim();
         if (accountTaken(db.users, { name: trimmed })) return { taken: true, field: "name" };
@@ -71,19 +84,18 @@ export function StoreProvider({ children }) {
           throw new Error("註冊失敗");
         }
         if (accountTaken(db.users, { email: mail })) return { taken: true, field: "email" };
+        referrerIdForInvite(db.users, inviteCode);
         const id = `u-${crypto.randomUUID()}`;
         commit((next) => {
-          next.users.push({
-            id,
-            name: trimmed,
-            email: mail,
-            password,
-            role: "student",
-            basic: false,
-            vip: false,
-            vipUntil: null,
-            locked: false,
-          });
+          next.users.push(
+            memberFromSignup(next.users, {
+              id,
+              name: trimmed,
+              email: mail,
+              password,
+              inviteCode,
+            }),
+          );
           next.sessionId = id;
         });
         return { taken: false };
@@ -247,23 +259,38 @@ export function StoreProvider({ children }) {
           next.videos = next.videos.filter((item) => item.id !== id);
         });
       },
-      addAccount({ name, email, password }) {
+      addAccount({ name, email, password, inviteCode }) {
         const trimmed = name.trim();
         if (accountTaken(db.users, { name: trimmed })) throw new Error("此名稱已有人使用");
         if (accountTaken(db.users, { email })) throw new Error("此電郵已有人使用");
         if (password.length < 8) throw new Error("密碼至少 8 位");
+        referrerIdForInvite(db.users, inviteCode);
+        const id = `u-${crypto.randomUUID()}`;
         commit((next) => {
-          next.users.push({
-            id: `u-${crypto.randomUUID()}`,
-            name: trimmed,
-            email: email.trim(),
-            password,
-            role: "student",
-            basic: false,
-            vip: false,
-            vipUntil: null,
-            locked: false,
-          });
+          next.users.push(
+            memberFromSignup(next.users, {
+              id,
+              name: trimmed,
+              email,
+              password,
+              inviteCode,
+            }),
+          );
+        });
+      },
+      setTeamPrefix(userId, prefix) {
+        if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
+        if (!normalizeTeamPrefix(prefix)) throw new Error("團隊前綴須為 2 個英文字母");
+        commit((next) => {
+          const row = next.users.find((item) => item.id === userId);
+          if (row) assignTeamPrefix(row, next.users, prefix);
+        });
+      },
+      remintAccountCode(userId) {
+        if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
+        commit((next) => {
+          const row = next.users.find((item) => item.id === userId);
+          if (row) remintAccountSuffix(row, next.users);
         });
       },
       setMembership(userId, patch) {

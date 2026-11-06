@@ -131,6 +131,7 @@ function Staff({ profile }) {
               selfEmail={profile.email}
               canAccounts={profile.powers.includes("accounts")}
               canRoles={profile.powers.includes("roles")}
+              canManageCodes={profile.role === "admin"}
               onChange={(message) => {
                 setNotice(message);
                 setError("");
@@ -404,11 +405,67 @@ function badgeClass(label) {
   return "badge badge-unpaid";
 }
 
-function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
+function AccountCodeCell({ person, canManage, onChange, onError }) {
+  const { setTeamPrefix, remintAccountCode } = useStore();
+  const current = String(person.accountCode || "");
+  const [prefix, setPrefix] = useState(current.slice(0, 2));
+
+  useEffect(() => {
+    setPrefix(current.slice(0, 2));
+  }, [current]);
+
+  if (!canManage) return <span className="font-medium">{current}</span>;
+
+  return (
+    <div className="space-y-2">
+      <p className="font-medium">{current}</p>
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          try {
+            setTeamPrefix(person.userId, prefix);
+            onChange("團隊前綴已更新");
+          } catch (err) {
+            onError(err instanceof Error ? err.message : "更新失敗");
+          }
+        }}
+      >
+        <input
+          className="w-16 rounded-lg border border-line bg-bg px-2 py-1.5 uppercase"
+          value={prefix}
+          maxLength={2}
+          aria-label={`${person.displayName} 的團隊前綴`}
+          onChange={(event) => setPrefix(event.target.value.toUpperCase())}
+        />
+        <button type="submit" className="text-gold">
+          改前綴
+        </button>
+        <button
+          type="button"
+          className="text-gold"
+          onClick={() => {
+            try {
+              remintAccountCode(person.userId);
+              onChange("已重發後 4 位");
+            } catch (err) {
+              onError(err instanceof Error ? err.message : "更新失敗");
+            }
+          }}
+        >
+          重發後4位
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function Accounts({ selfEmail, canAccounts, canRoles, canManageCodes, onChange, onError }) {
   const { people, addAccount, setRole, setMembership, deleteUser, signOut } = useStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [show, setShow] = useState(false);
   const [editing, setEditing] = useState("");
   const [role, setRoleValue] = useState("student");
@@ -421,14 +478,15 @@ function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
     <div className="mt-6 space-y-4">
       {canAccounts ? (
         <form
-          className="grid gap-3 rounded-xl border border-line bg-surface p-5 sm:grid-cols-4"
+          className="grid gap-3 rounded-xl border border-line bg-surface p-5 md:grid-cols-2 xl:grid-cols-5"
           onSubmit={(event) => {
             event.preventDefault();
             try {
-              addAccount({ name, email, password });
+              addAccount({ name, email, password, inviteCode });
               setName("");
               setEmail("");
               setPassword("");
+              setInviteCode("");
               onChange("學員帳號已建立");
             } catch (err) {
               onError(err instanceof Error ? err.message : "建立失敗");
@@ -470,9 +528,22 @@ function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
               <Icon name={show ? "eye-off" : "eye"} className="size-5" />
             </button>
           </span>
+          <input
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            className="rounded-lg border border-line bg-bg px-3 py-3"
+            placeholder="會員邀請碼（選填）"
+            aria-label="會員邀請碼"
+            value={inviteCode}
+            onChange={(event) => setInviteCode(event.target.value)}
+          />
           <button type="submit" className="rounded-lg bg-gold px-4 py-3 font-semibold text-bg">
             新增學員
           </button>
+          <p className="text-xs text-muted md:col-span-2 xl:col-span-5">
+            有邀請碼會沿用對方的團隊。留空則編為無團隊自來客（ZZ）。
+          </p>
         </form>
       ) : null}
       <div className="overflow-x-auto rounded-xl border border-line bg-surface">
@@ -480,6 +551,7 @@ function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
           <thead className="border-b border-line text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">成員</th>
+              <th className="px-4 py-3 font-medium">會員編號</th>
               <th className="px-4 py-3 font-medium">賬號</th>
               <th className="px-4 py-3 font-medium">會籍</th>
               <th className="px-4 py-3 font-medium">角色</th>
@@ -499,6 +571,14 @@ function Accounts({ selfEmail, canAccounts, canRoles, onChange, onError }) {
                       </span>
                       {person.displayName}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <AccountCodeCell
+                      person={person}
+                      canManage={canManageCodes}
+                      onChange={onChange}
+                      onError={onError}
+                    />
                   </td>
                   <td className="px-4 py-3 text-muted">{person.email}</td>
                   <td className="px-4 py-3">

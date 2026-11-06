@@ -126,6 +126,9 @@ export function seedDatabase() {
         vip: true,
         vipUntil: null,
         locked: false,
+        accountCode: "TP1001",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-demo",
@@ -137,6 +140,9 @@ export function seedDatabase() {
         vip: true,
         vipUntil: plusDays(30),
         locked: false,
+        accountCode: "TP1002",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-student01",
@@ -148,6 +154,9 @@ export function seedDatabase() {
         vip: false,
         vipUntil: null,
         locked: false,
+        accountCode: "TP1003",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-student02",
@@ -159,6 +168,9 @@ export function seedDatabase() {
         vip: false,
         vipUntil: null,
         locked: false,
+        accountCode: "TP1004",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-student03",
@@ -170,6 +182,9 @@ export function seedDatabase() {
         vip: false,
         vipUntil: null,
         locked: false,
+        accountCode: "TP1005",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-student04",
@@ -181,6 +196,9 @@ export function seedDatabase() {
         vip: false,
         vipUntil: null,
         locked: false,
+        accountCode: "TP1006",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-student05",
@@ -192,6 +210,9 @@ export function seedDatabase() {
         vip: false,
         vipUntil: null,
         locked: false,
+        accountCode: "TP1007",
+        teamPrefix: "TP",
+        referredBy: null,
       },
       {
         id: "u-locked01",
@@ -203,6 +224,9 @@ export function seedDatabase() {
         vip: false,
         vipUntil: null,
         locked: true,
+        accountCode: "TP1008",
+        teamPrefix: "TP",
+        referredBy: null,
       },
     ],
     modules: [
@@ -309,6 +333,174 @@ export function accountTaken(users, { name, email } = {}) {
   return null;
 }
 
+const ACCOUNT_CODE_PATTERN = /^[A-Z]{2}\d{4}$/;
+const SUFFIX_SPAN = 10000;
+
+/** Demo and house accounts. Live sign-up does not use this unless the referrer does. */
+export const DEFAULT_TEAM_PREFIX = "TP";
+/** Walk-in / 無團隊自來客. Not a sales team. */
+export const WALK_IN_PREFIX = "ZZ";
+
+export function normalizeTeamPrefix(value) {
+  const text = String(value ?? "").trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(text) ? text : "";
+}
+
+/** Canonical member number: two uppercase letters plus four digits. */
+export function isAccountCode(value) {
+  return ACCOUNT_CODE_PATTERN.test(String(value ?? "").trim());
+}
+
+function normalizedAccountCode(value) {
+  const text = String(value ?? "").trim().toUpperCase();
+  return ACCOUNT_CODE_PATTERN.test(text) ? text : "";
+}
+
+function prefixOf(code) {
+  const normalized = normalizedAccountCode(code);
+  return normalized ? normalized.slice(0, 2) : "";
+}
+
+function randomSuffix(random) {
+  const roll = Number(random());
+  const unit = Number.isFinite(roll) ? Math.min(Math.max(roll, 0), 0.999999999) : 0;
+  return String(Math.floor(unit * SUFFIX_SPAN)).padStart(4, "0");
+}
+
+export function allocateAccountCode(users, random = Math.random, prefix = DEFAULT_TEAM_PREFIX) {
+  const team = normalizeTeamPrefix(prefix);
+  if (!team) throw new Error("團隊前綴須為 2 個英文字母");
+  const takenSuffixes = new Set();
+  const takenCodes = new Set();
+  for (const user of users ?? []) {
+    const code = normalizedAccountCode(user?.accountCode);
+    if (!code) continue;
+    takenCodes.add(code);
+    if (code.startsWith(team)) takenSuffixes.add(code.slice(2));
+  }
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const suffix = randomSuffix(random);
+    const code = `${team}${suffix}`;
+    if (!takenSuffixes.has(suffix) && !takenCodes.has(code)) return code;
+  }
+  for (let n = 0; n < SUFFIX_SPAN; n += 1) {
+    const suffix = String(n).padStart(4, "0");
+    const code = `${team}${suffix}`;
+    if (!takenSuffixes.has(suffix) && !takenCodes.has(code)) return code;
+  }
+  throw new Error("沒有可用的會員編號");
+}
+
+function prefixForMint(user, users) {
+  const own = normalizeTeamPrefix(user?.teamPrefix);
+  if (own) return own;
+  if (user?.referredBy) {
+    const referrer = (users ?? []).find((item) => item && item.id === user.referredBy);
+    const inherited = prefixOf(referrer?.accountCode);
+    if (inherited) return inherited;
+  }
+  return WALK_IN_PREFIX;
+}
+
+/** Fill missing, invalid, or duplicate codes. Leaves every other field in place. */
+export function ensureAccountCodes(users, random = Math.random) {
+  if (!Array.isArray(users)) return false;
+  let changed = false;
+  const claimed = new Set();
+  const needsCode = [];
+  for (const user of users) {
+    if (!user || typeof user !== "object") continue;
+    if (user.referredBy === undefined) {
+      user.referredBy = null;
+      changed = true;
+    }
+    const code = normalizedAccountCode(user.accountCode);
+    if (code && !claimed.has(code)) {
+      claimed.add(code);
+      const codePrefix = code.slice(0, 2);
+      if (user.accountCode !== code) {
+        user.accountCode = code;
+        changed = true;
+      }
+      if (user.teamPrefix !== codePrefix) {
+        user.teamPrefix = codePrefix;
+        changed = true;
+      }
+    } else needsCode.push(user);
+  }
+  for (const user of needsCode) {
+    const prefix = prefixForMint(user, users);
+    user.accountCode = allocateAccountCode(users, random, prefix);
+    user.teamPrefix = prefix;
+    changed = true;
+  }
+  return changed;
+}
+
+export function prepareDatabase(parsed, random = Math.random) {
+  if (!parsed || !Array.isArray(parsed.users) || parsed.users.length === 0) {
+    return { db: seedDatabase(), changed: false };
+  }
+  const db = {
+    ...seedDatabase(),
+    ...parsed,
+    users: parsed.users.map((user) => ({ ...user })),
+  };
+  const changed = ensureAccountCodes(db.users, random);
+  return { db, changed };
+}
+
+export function referrerIdForInvite(users, inviteCode) {
+  const raw = String(inviteCode ?? "").trim().toUpperCase();
+  if (!raw) return null;
+  if (!isAccountCode(raw)) throw new Error("會員邀請碼不正確");
+  const referrer = (Array.isArray(users) ? users : []).find(
+    (user) => normalizedAccountCode(user?.accountCode) === raw,
+  );
+  if (!referrer) throw new Error("會員邀請碼不正確");
+  return referrer.id;
+}
+
+export function memberFromSignup(users, fields, random = Math.random) {
+  const referredBy = referrerIdForInvite(users, fields?.inviteCode);
+  const referrer = referredBy ? (users ?? []).find((user) => user.id === referredBy) : null;
+  const prefix = referrer ? prefixOf(referrer.accountCode) : WALK_IN_PREFIX;
+  if (!prefix) throw new Error("會員邀請碼不正確");
+  return {
+    id: fields.id,
+    name: String(fields?.name ?? "").trim(),
+    email: String(fields?.email ?? "").trim(),
+    password: fields.password,
+    role: fields.role || "student",
+    basic: false,
+    vip: false,
+    vipUntil: null,
+    locked: false,
+    accountCode: allocateAccountCode(users, random, prefix),
+    teamPrefix: prefix,
+    referredBy,
+  };
+}
+
+export function assignTeamPrefix(user, users, prefix, random = Math.random) {
+  const team = normalizeTeamPrefix(prefix);
+  if (!team) throw new Error("團隊前綴須為 2 個英文字母");
+  const suffix = normalizedAccountCode(user?.accountCode).slice(2);
+  const others = (users ?? []).filter((item) => item !== user);
+  const suffixTaken = others.some((item) => normalizedAccountCode(item?.accountCode) === `${team}${suffix}`);
+  user.accountCode = suffix && !suffixTaken ? `${team}${suffix}` : allocateAccountCode(others, random, team);
+  user.teamPrefix = team;
+  return user.accountCode;
+}
+
+export function remintAccountSuffix(user, users, random = Math.random) {
+  const team = normalizeTeamPrefix(user?.teamPrefix) || prefixOf(user?.accountCode) || WALK_IN_PREFIX;
+  const others = (users ?? []).filter((item) => item !== user);
+  user.accountCode = allocateAccountCode(others, random, team);
+  user.teamPrefix = team;
+  return user.accountCode;
+}
+
 export function vipActive(user, now = Date.now()) {
   if (!user) return false;
   if (user.role !== "student") return true;
@@ -354,6 +546,7 @@ export function personRecord(user, now = Date.now()) {
     vipUntil: view.vipUntil,
     labels: view.labels,
     expiry: view.expiry,
+    accountCode: normalizedAccountCode(user.accountCode),
   };
 }
 
@@ -401,6 +594,7 @@ export function toProfile(user, db) {
     vipUntil: user.vipUntil,
     basic: user.role !== "student" ? true : Boolean(user.basic),
     locked: Boolean(user.locked) && user.role === "student",
+    accountCode: normalizedAccountCode(user.accountCode),
   };
 }
 

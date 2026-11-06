@@ -94,6 +94,18 @@ function AccountSection({ profile }) {
           />
         </label>
         <p className="text-xs text-muted">電郵用於重設密碼，暫時不能在這裡修改。</p>
+        <label className="block text-sm text-muted">
+          會員編號
+          <input
+            className="mt-1 w-full rounded-lg border border-line bg-bg px-3 py-3 text-fg outline-none"
+            value={profile.accountCode || ""}
+            readOnly
+            aria-readonly="true"
+          />
+        </label>
+        <p className="text-xs text-muted">
+          這是你的會員編號。其他人註冊時可填作邀請碼，並會加入你的團隊。ZZ 開頭是無團隊自來客。
+        </p>
         {message ? <p className="text-sm text-gold">{message}</p> : null}
         {error ? <p className="text-sm text-danger">{error}</p> : null}
         <button

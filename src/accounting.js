@@ -181,6 +181,73 @@ export function commissionsCsv(commissions) {
   return `\uFEFF${lines.join("\r\n")}`;
 }
 
+const LEDGER_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function filterText(value) {
+  return String(value ?? "").trim();
+}
+
+function includesText(value, query, upper) {
+  const text = String(value ?? "");
+  if (upper) return text.toUpperCase().includes(query.toUpperCase());
+  return text.toLowerCase().includes(query.toLowerCase());
+}
+
+function matchesAny(values, query, upper) {
+  return values.some((value) => includesText(value, query, upper));
+}
+
+function canonicalPlan(value) {
+  if (!value) return "";
+  const byId = PLANS.find((item) => item.id === value);
+  if (byId) return byId.id;
+  const byName = PLANS.find((item) => item.name === value);
+  return byName ? byName.id : value;
+}
+
+function canonicalStatus(value) {
+  if (!value) return "";
+  if (value === "已記錄") return "recorded";
+  return value;
+}
+
+/**
+ * Narrow commission rows for the detail list and CSV.
+ * Text matches either party. Plan, status, and dates are exact.
+ * Invite codes come from the current member record (they are not stored on the row).
+ */
+export function filterCommissions(commissions, filters = {}, users = []) {
+  const rows = Array.isArray(commissions) ? commissions : [];
+  const accountCode = filterText(filters.accountCode);
+  const inviteCode = filterText(filters.inviteCode);
+  const name = filterText(filters.name);
+  const plan = canonicalPlan(filterText(filters.plan));
+  const status = canonicalStatus(filterText(filters.status));
+  const fromText = filterText(filters.dateFrom);
+  const toText = filterText(filters.dateTo);
+  const dateFrom = LEDGER_DATE.test(fromText) ? fromText : "";
+  const dateTo = LEDGER_DATE.test(toText) ? toText : "";
+  const inviteById = new Map();
+  for (const user of Array.isArray(users) ? users : []) {
+    if (!user || user.id == null) continue;
+    inviteById.set(user.id, user.inviteCode);
+  }
+  return rows.filter((row) => {
+    if (!row || typeof row !== "object") return false;
+    if (accountCode && !matchesAny([row.referrerAccountCode, row.buyerAccountCode], accountCode, true)) return false;
+    if (inviteCode && !matchesAny([inviteById.get(row.referrerId), inviteById.get(row.buyerId)], inviteCode, true)) {
+      return false;
+    }
+    if (name && !matchesAny([row.referrerName, row.buyerName], name, false)) return false;
+    if (plan && row.plan !== plan) return false;
+    if (status && row.status !== status) return false;
+    const date = String(row.date ?? "");
+    if (dateFrom && date < dateFrom) return false;
+    if (dateTo && date > dateTo) return false;
+    return true;
+  });
+}
+
 export function canViewAccounting(profile) {
   return Boolean(profile?.powers?.includes("accounting"));
 }

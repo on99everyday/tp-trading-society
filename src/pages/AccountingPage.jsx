@@ -14,7 +14,7 @@ import { PLANS, roleLabel } from "../course";
 import { Pending, Shell, useAuthedProfile } from "../components/Shell";
 import { useStore } from "../store";
 
-const COLUMNS = ["日期", "六位帳號（識別碼）", "介紹人", "被介紹人", "計劃", "金額", "佣金", "狀態"];
+const COLUMNS = ["日期", "六位帳號（識別碼）", "介紹人", "被介紹人", "計劃", "佣金比例", "金額", "佣金", "狀態"];
 
 const EMPTY_FILTERS = {
   accountCode: "",
@@ -49,15 +49,21 @@ function Accounting({ profile }) {
   const summaries = summarizeByReferrer(store.db.commissions);
   const filtered = filterCommissions(store.db.commissions, filters, store.db.users);
   const rows = ledgerRows(filtered);
-  const ratePercent = percentFromRate(store.db.commissionRate);
-  const [draft, setDraft] = useState(String(ratePercent));
+  const basicPercent = percentFromRate(store.db.basicCommissionRate);
+  const vipPercent = percentFromRate(store.db.vipCommissionRate);
+  const [basicDraft, setBasicDraft] = useState(String(basicPercent));
+  const [vipDraft, setVipDraft] = useState(String(vipPercent));
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const filtering = Object.values(filters).some((value) => String(value).trim());
 
   useEffect(() => {
-    setDraft(String(ratePercent));
-  }, [ratePercent]);
+    setBasicDraft(String(basicPercent));
+  }, [basicPercent]);
+
+  useEffect(() => {
+    setVipDraft(String(vipPercent));
+  }, [vipPercent]);
 
   function setFilter(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -81,49 +87,88 @@ function Accounting({ profile }) {
       <p className="text-sm text-gold">{roleLabel(profile.role)}</p>
       <h1 className="mt-1 text-3xl font-semibold">佣金帳目</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-        只有成功支付才記入佣金。基礎會員在首次支付時計一次，再次支付不會再計。VIP 每次支付或續費都計。註冊本身不計佣金。六位帳號是介紹人的會員編號。
+        只有成功支付才記入佣金。基礎會員用基礎佣金比例，只在首次支付時計一次。VIP 用 VIP 佣金比例，每次支付或續費都計。註冊本身不計佣金。六位帳號是介紹人的會員編號。明細列出該筆使用的計劃和佣金比例。
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm">
-          目前佣金比例 <span className="font-semibold text-gold">{ratePercent}%</span>
-        </p>
+        <div className="text-sm">
+          <p>
+            目前基礎佣金比例 <span className="font-semibold text-gold">{basicPercent}%</span>
+          </p>
+          <p>
+            目前 VIP 佣金比例 <span className="font-semibold text-gold">{vipPercent}%</span>
+          </p>
+        </div>
         <button type="button" className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-bg" onClick={exportCsv}>
           匯出 CSV
         </button>
       </div>
       {canEditCommissionRate(profile) ? (
-        <form
-          className="mt-4 flex flex-wrap items-center gap-2"
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            try {
-              store.setCommissionRate(draft);
-              setNotice("佣金比例已更新");
-              setError("");
-            } catch (err) {
-              setNotice("");
-              setError(err instanceof Error ? err.message : "未能更新佣金比例");
-            }
-          }}
-        >
-          <label className="text-sm" htmlFor="commission-rate">
-            調整比例（%）
-          </label>
-          <input
-            id="commission-rate"
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            className="rate-input rounded-lg border border-line bg-bg px-3 py-2"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-          />
-          <button type="submit" className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-gold">
-            儲存
-          </button>
-        </form>
+        <div className="mt-4 grid gap-3">
+          <form
+            className="flex flex-wrap items-center gap-2"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              try {
+                store.setCommissionRate("basic", basicDraft);
+                setNotice("基礎佣金比例已更新");
+                setError("");
+              } catch (err) {
+                setNotice("");
+                setError(err instanceof Error ? err.message : "未能更新佣金比例");
+              }
+            }}
+          >
+            <label className="text-sm" htmlFor="basic-commission-rate">
+              基礎比例（%）
+            </label>
+            <input
+              id="basic-commission-rate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              className="rate-input rounded-lg border border-line bg-bg px-3 py-2"
+              value={basicDraft}
+              onChange={(event) => setBasicDraft(event.target.value)}
+            />
+            <button type="submit" className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-gold">
+              儲存
+            </button>
+          </form>
+          <form
+            className="flex flex-wrap items-center gap-2"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              try {
+                store.setCommissionRate("vip", vipDraft);
+                setNotice("VIP 佣金比例已更新");
+                setError("");
+              } catch (err) {
+                setNotice("");
+                setError(err instanceof Error ? err.message : "未能更新佣金比例");
+              }
+            }}
+          >
+            <label className="text-sm" htmlFor="vip-commission-rate">
+              VIP 比例（%）
+            </label>
+            <input
+              id="vip-commission-rate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              className="rate-input rounded-lg border border-line bg-bg px-3 py-2"
+              value={vipDraft}
+              onChange={(event) => setVipDraft(event.target.value)}
+            />
+            <button type="submit" className="rounded-lg bg-surface px-4 py-2 text-sm font-medium text-gold">
+              儲存
+            </button>
+          </form>
+        </div>
       ) : null}
       {notice ? <p className="mt-4 text-sm text-gold">{notice}</p> : null}
       {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}

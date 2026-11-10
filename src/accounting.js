@@ -16,8 +16,17 @@ export function ensureLedger(db) {
     db.commissions = [];
     changed = true;
   }
-  if (!validRate(db.commissionRate)) {
-    db.commissionRate = DEFAULT_COMMISSION_RATE;
+  const legacy = validRate(db.commissionRate) ? db.commissionRate : null;
+  if (!validRate(db.basicCommissionRate)) {
+    db.basicCommissionRate = legacy ?? DEFAULT_COMMISSION_RATE;
+    changed = true;
+  }
+  if (!validRate(db.vipCommissionRate)) {
+    db.vipCommissionRate = legacy ?? DEFAULT_COMMISSION_RATE;
+    changed = true;
+  }
+  if (Object.prototype.hasOwnProperty.call(db, "commissionRate")) {
+    delete db.commissionRate;
     changed = true;
   }
   if (!Array.isArray(db.powers)) {
@@ -38,13 +47,15 @@ export function percentFromRate(rate) {
   return Math.round(safe * 10000) / 100;
 }
 
-export function applyCommissionRate(db, percent) {
+export function applyCommissionRate(db, plan, percent) {
+  const field = plan === "basic" ? "basicCommissionRate" : plan === "vip" ? "vipCommissionRate" : "";
   const number = Number(percent);
-  if (!Number.isFinite(number) || number < 0 || number > 100) {
+  if (!field || !Number.isFinite(number) || number < 0 || number > 100) {
     throw new Error("佣金比例須為 0 到 100");
   }
-  db.commissionRate = Math.round(number * 100) / 10000;
-  return db.commissionRate;
+  ensureLedger(db);
+  db[field] = Math.round(number * 100) / 10000;
+  return db[field];
 }
 
 function paymentAmountFor(plan) {
@@ -93,7 +104,8 @@ export function applySuccessfulPayment(db, buyerId, plan, now = new Date()) {
   if (referrer && !repeatBasic) {
     const atDate = now instanceof Date ? now : new Date(now);
     const at = atDate.toISOString();
-    const rate = validRate(db.commissionRate) ? db.commissionRate : DEFAULT_COMMISSION_RATE;
+    const rateField = plan === "vip" ? "vipCommissionRate" : "basicCommissionRate";
+    const rate = validRate(db[rateField]) ? db[rateField] : DEFAULT_COMMISSION_RATE;
     const paymentAmount = paymentAmountFor(plan);
     entry = {
       id: nextCommissionId(db.commissions),
@@ -161,6 +173,7 @@ export function ledgerRows(commissions) {
     介紹人: row.referrerName,
     被介紹人: row.buyerName,
     計劃: planLabel(row.plan),
+    佣金比例: `${percentFromRate(row.rate)}%`,
     金額: formatMoney(row.paymentAmount),
     佣金: formatMoney(row.commissionAmount),
     狀態: statusLabel(row.status),

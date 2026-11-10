@@ -328,7 +328,8 @@ export function seedDatabase() {
     ],
     watches: [],
     powers: defaultPowerRows(),
-    commissionRate: 0.1,
+    basicCommissionRate: 0.1,
+    vipCommissionRate: 0.1,
     commissions: [],
     sessionId: null,
     nextId: 100,
@@ -534,6 +535,8 @@ export function prepareDatabase(parsed, random = Math.random) {
     ...parsed,
     users: parsed.users.map((user) => ({ ...user })),
   };
+  if (!Object.prototype.hasOwnProperty.call(parsed, "basicCommissionRate")) delete db.basicCommissionRate;
+  if (!Object.prototype.hasOwnProperty.call(parsed, "vipCommissionRate")) delete db.vipCommissionRate;
   const accountChanged = ensureAccountCodes(db.users, random);
   const inviteChanged = ensureInviteCodes(db.users, random);
   return { db, changed: accountChanged || inviteChanged };

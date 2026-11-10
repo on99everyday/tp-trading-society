@@ -139,6 +139,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1001",
         teamPrefix: "TP",
+        inviteCode: "ADMIN001",
         referredBy: null,
       },
       {
@@ -153,6 +154,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1002",
         teamPrefix: "TP",
+        inviteCode: "DEMO0001",
         referredBy: null,
       },
       {
@@ -167,6 +169,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1003",
         teamPrefix: "TP",
+        inviteCode: "STUD0001",
         referredBy: null,
       },
       {
@@ -181,6 +184,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1004",
         teamPrefix: "TP",
+        inviteCode: "STUD0002",
         referredBy: null,
       },
       {
@@ -195,6 +199,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1005",
         teamPrefix: "TP",
+        inviteCode: "STUD0003",
         referredBy: null,
       },
       {
@@ -209,6 +214,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1006",
         teamPrefix: "TP",
+        inviteCode: "STUD0004",
         referredBy: null,
       },
       {
@@ -223,6 +229,7 @@ export function seedDatabase() {
         locked: false,
         accountCode: "TP1007",
         teamPrefix: "TP",
+        inviteCode: "STUD0005",
         referredBy: null,
       },
       {
@@ -237,6 +244,7 @@ export function seedDatabase() {
         locked: true,
         accountCode: "TP1008",
         teamPrefix: "TP",
+        inviteCode: "LOCK0001",
         referredBy: null,
       },
     ],
@@ -347,6 +355,8 @@ export function accountTaken(users, { name, email } = {}) {
 }
 
 const ACCOUNT_CODE_PATTERN = /^[A-Z]{2}\d{4}$/;
+const INVITE_CODE_PATTERN = /^[A-Z0-9]{8}$/;
+const INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const SUFFIX_SPAN = 10000;
 
 /** Demo and house accounts. Live sign-up does not use this unless the referrer does. */
@@ -364,9 +374,19 @@ export function isAccountCode(value) {
   return ACCOUNT_CODE_PATTERN.test(String(value ?? "").trim());
 }
 
+/** Shareable invite: eight uppercase letters or digits. Not an account code. */
+export function isInviteCode(value) {
+  return INVITE_CODE_PATTERN.test(String(value ?? "").trim());
+}
+
 function normalizedAccountCode(value) {
   const text = String(value ?? "").trim().toUpperCase();
   return ACCOUNT_CODE_PATTERN.test(text) ? text : "";
+}
+
+function normalizedInviteCode(value) {
+  const text = String(value ?? "").trim().toUpperCase();
+  return INVITE_CODE_PATTERN.test(text) ? text : "";
 }
 
 function prefixOf(code) {
@@ -402,6 +422,61 @@ export function allocateAccountCode(users, random = Math.random, prefix = DEFAUL
     if (!takenSuffixes.has(suffix) && !takenCodes.has(code)) return code;
   }
   throw new Error("沒有可用的會員編號");
+}
+
+function randomUnit(random) {
+  const roll = Number(random());
+  return Number.isFinite(roll) ? Math.min(Math.max(roll, 0), 0.999999999) : 0;
+}
+
+function randomInviteCode(random) {
+  let code = "";
+  for (let index = 0; index < 8; index += 1) {
+    code += INVITE_ALPHABET[Math.floor(randomUnit(random) * INVITE_ALPHABET.length)];
+  }
+  return code;
+}
+
+export function allocateInviteCode(users, random = Math.random) {
+  const taken = new Set();
+  for (const user of users ?? []) {
+    const code = normalizedInviteCode(user?.inviteCode);
+    if (code) taken.add(code);
+  }
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const code = randomInviteCode(random);
+    if (!taken.has(code)) return code;
+  }
+  const span = INVITE_ALPHABET.length ** 8;
+  for (let n = 0; n < span; n += 1) {
+    const code = n.toString(36).toUpperCase().padStart(8, "0");
+    if (!taken.has(code)) return code;
+  }
+  throw new Error("沒有可用的邀請碼");
+}
+
+/** Fill missing, invalid, or duplicate invite codes. A valid unique code stays put. */
+export function ensureInviteCodes(users, random = Math.random) {
+  if (!Array.isArray(users)) return false;
+  let changed = false;
+  const claimed = new Set();
+  const needsCode = [];
+  for (const user of users) {
+    if (!user || typeof user !== "object") continue;
+    const code = normalizedInviteCode(user.inviteCode);
+    if (code && !claimed.has(code)) {
+      claimed.add(code);
+      if (user.inviteCode !== code) {
+        user.inviteCode = code;
+        changed = true;
+      }
+    } else needsCode.push(user);
+  }
+  for (const user of needsCode) {
+    user.inviteCode = allocateInviteCode(users, random);
+    changed = true;
+  }
+  return changed;
 }
 
 function prefixForMint(user, users) {
@@ -459,25 +534,30 @@ export function prepareDatabase(parsed, random = Math.random) {
     ...parsed,
     users: parsed.users.map((user) => ({ ...user })),
   };
-  const changed = ensureAccountCodes(db.users, random);
-  return { db, changed };
+  const accountChanged = ensureAccountCodes(db.users, random);
+  const inviteChanged = ensureInviteCodes(db.users, random);
+  return { db, changed: accountChanged || inviteChanged };
 }
 
 export function referrerIdForInvite(users, inviteCode) {
   const raw = String(inviteCode ?? "").trim().toUpperCase();
   if (!raw) return null;
-  if (!isAccountCode(raw)) throw new Error("會員邀請碼不正確");
+  if (!isInviteCode(raw)) throw new Error("會員邀請碼不正確");
   const referrer = (Array.isArray(users) ? users : []).find(
-    (user) => normalizedAccountCode(user?.accountCode) === raw,
+    (user) => normalizedInviteCode(user?.inviteCode) === raw,
   );
   if (!referrer) throw new Error("會員邀請碼不正確");
   return referrer.id;
 }
 
+function prefixForReferrer(referrer) {
+  return normalizeTeamPrefix(referrer?.teamPrefix) || prefixOf(referrer?.accountCode) || "";
+}
+
 export function memberFromSignup(users, fields, random = Math.random) {
   const referredBy = referrerIdForInvite(users, fields?.inviteCode);
   const referrer = referredBy ? (users ?? []).find((user) => user.id === referredBy) : null;
-  const prefix = referrer ? prefixOf(referrer.accountCode) : WALK_IN_PREFIX;
+  const prefix = referrer ? prefixForReferrer(referrer) : WALK_IN_PREFIX;
   if (!prefix) throw new Error("會員邀請碼不正確");
   return {
     id: fields.id,
@@ -491,25 +571,22 @@ export function memberFromSignup(users, fields, random = Math.random) {
     locked: false,
     accountCode: allocateAccountCode(users, random, prefix),
     teamPrefix: prefix,
+    inviteCode: allocateInviteCode(users, random),
     referredBy,
   };
 }
 
-export function assignTeamPrefix(user, users, prefix, random = Math.random) {
+export function assignTeamPrefix(user, users, prefix) {
   const team = normalizeTeamPrefix(prefix);
   if (!team) throw new Error("團隊前綴須為 2 個英文字母");
   const suffix = normalizedAccountCode(user?.accountCode).slice(2);
-  const others = (users ?? []).filter((item) => item !== user);
-  const suffixTaken = others.some((item) => normalizedAccountCode(item?.accountCode) === `${team}${suffix}`);
-  user.accountCode = suffix && !suffixTaken ? `${team}${suffix}` : allocateAccountCode(others, random, team);
-  user.teamPrefix = team;
-  return user.accountCode;
-}
-
-export function remintAccountSuffix(user, users, random = Math.random) {
-  const team = normalizeTeamPrefix(user?.teamPrefix) || prefixOf(user?.accountCode) || WALK_IN_PREFIX;
-  const others = (users ?? []).filter((item) => item !== user);
-  user.accountCode = allocateAccountCode(others, random, team);
+  if (!/^\d{4}$/.test(suffix)) throw new Error("會員編號後 4 位不能更改");
+  const nextCode = `${team}${suffix}`;
+  const taken = (users ?? []).some(
+    (item) => item !== user && normalizedAccountCode(item?.accountCode) === nextCode,
+  );
+  if (taken) throw new Error("此會員編號已被使用");
+  user.accountCode = nextCode;
   user.teamPrefix = team;
   return user.accountCode;
 }
@@ -560,6 +637,7 @@ export function personRecord(user, now = Date.now()) {
     labels: view.labels,
     expiry: view.expiry,
     accountCode: normalizedAccountCode(user.accountCode),
+    inviteCode: normalizedInviteCode(user.inviteCode),
   };
 }
 
@@ -608,6 +686,7 @@ export function toProfile(user, db) {
     basic: complimentaryMember(user) ? true : Boolean(user.basic),
     locked: Boolean(user.locked) && user.role === "student",
     accountCode: normalizedAccountCode(user.accountCode),
+    inviteCode: normalizedInviteCode(user.inviteCode),
   };
 }
 

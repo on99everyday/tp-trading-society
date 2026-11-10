@@ -13,11 +13,9 @@ import {
   assignTeamPrefix,
   enabledPowers,
   memberFromSignup,
-  normalizeTeamPrefix,
   personRecord,
   prepareDatabase,
   referrerIdForInvite,
-  remintAccountSuffix,
   seedDatabase,
   toProfile,
   userByLoginName,
@@ -297,18 +295,13 @@ export function StoreProvider({ children }) {
         });
       },
       setTeamPrefix(userId, prefix) {
-        if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
-        if (!normalizeTeamPrefix(prefix)) throw new Error("團隊前綴須為 2 個英文字母");
+        const draft = structuredClone(db.users);
+        const preview = draft.find((item) => item.id === userId);
+        if (!preview) throw new Error("更新失敗");
+        assignTeamPrefix(preview, draft, prefix);
         commit((next) => {
           const row = next.users.find((item) => item.id === userId);
           if (row) assignTeamPrefix(row, next.users, prefix);
-        });
-      },
-      remintAccountCode(userId) {
-        if (!db.users.some((item) => item.id === userId)) throw new Error("更新失敗");
-        commit((next) => {
-          const row = next.users.find((item) => item.id === userId);
-          if (row) remintAccountSuffix(row, next.users);
         });
       },
       setMembership(userId, patch) {

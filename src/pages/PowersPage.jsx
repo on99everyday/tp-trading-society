@@ -22,7 +22,7 @@ export function PowersPage() {
       <p className="text-sm text-gold">角色權力</p>
       <h1 className="mt-1 text-3xl font-semibold">各角色可以使用的功能</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-        管理員可以開關學員、工作人員和管理員的權力。人員本身的角色，在後台的權限設定裡調換。
+        開關學員、工作人員、會計和管理員可以使用的功能。會計預設只有佣金帳目。管理員的「修改角色權力」不能關閉。人員本身的角色，在後台的權限設定裡調換。
       </p>
       <Link to="/staff" className="mt-4 inline-block text-sm font-medium text-gold">
         返回後台

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROLES, STAFF_KEYS, formatDuration, roleLabel } from "../course";
 import { Icon } from "../icons";
-import { Pending, PowerTable, Shell, useAuthedProfile } from "../components/Shell";
+import { Pending, Shell, useAuthedProfile } from "../components/Shell";
 import { useStore } from "../store";
 
 export function StaffPage() {
@@ -22,25 +22,16 @@ export function StaffPage() {
 
 function Staff({ profile }) {
   const store = useStore();
-  const firstTab = profile.powers.includes("upload")
-    ? "upload"
-    : profile.powers.includes("remove")
-      ? "clips"
-      : profile.powers.includes("logs")
-        ? "logs"
-        : "access";
-  const [tab, setTab] = useState(firstTab);
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
   const tabs = [
     ...(profile.powers.includes("upload") ? [["upload", "上架短片"]] : []),
     ...(profile.powers.includes("upload") || profile.powers.includes("remove") ? [["clips", "已上架"]] : []),
     ...(profile.powers.includes("logs") ? [["logs", "觀看紀錄"]] : []),
-    ...(profile.powers.includes("roles") || profile.powers.includes("accounts") || profile.powers.includes("powers")
-      ? [["access", "權限設定"]]
-      : []),
+    ...(profile.powers.includes("roles") || profile.powers.includes("accounts") ? [["access", "權限設定"]] : []),
     ...(profile.role === "admin" || profile.role === "staff" ? [["guard", "登入封控"]] : []),
   ];
+  const [tab, setTab] = useState(tabs[0]?.[0] ?? "upload");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
 
   return (
     <Shell profile={profile}>
@@ -102,47 +93,21 @@ function Staff({ profile }) {
         </ul>
       ) : null}
       {tab === "logs" ? <Logs /> : null}
-      {tab === "access" &&
-      (profile.powers.includes("roles") || profile.powers.includes("accounts") || profile.powers.includes("powers")) ? (
-        <>
-          {profile.powers.includes("powers") ? (
-            <section className="mt-6">
-              <h2 className="text-lg font-semibold">角色權力</h2>
-              <p className="mt-1 mb-3 text-sm text-muted">
-                開關學員、工作人員、會計和管理員可以使用的功能。會計預設只有佣金帳目。管理員的「修改角色權力」不能關閉。
-              </p>
-              <PowerTable
-                rows={store.db.powers}
-                onChange={(role, permission, enabled) => {
-                  try {
-                    store.setPower(role, permission, enabled);
-                    setNotice("權限已更新");
-                    setError("");
-                  } catch (err) {
-                    setNotice("");
-                    setError(err instanceof Error ? err.message : "更新失敗");
-                  }
-                }}
-              />
-            </section>
-          ) : null}
-          {profile.powers.includes("roles") || profile.powers.includes("accounts") ? (
-            <Accounts
-              selfEmail={profile.email}
-              canAccounts={profile.powers.includes("accounts")}
-              canRoles={profile.powers.includes("roles")}
-              canManageCodes={profile.role === "admin"}
-              onChange={(message) => {
-                setNotice(message);
-                setError("");
-              }}
-              onError={(message) => {
-                setNotice("");
-                setError(message);
-              }}
-            />
-          ) : null}
-        </>
+      {tab === "access" && (profile.powers.includes("roles") || profile.powers.includes("accounts")) ? (
+        <Accounts
+          selfEmail={profile.email}
+          canAccounts={profile.powers.includes("accounts")}
+          canRoles={profile.powers.includes("roles")}
+          canManageCodes={profile.role === "admin"}
+          onChange={(message) => {
+            setNotice(message);
+            setError("");
+          }}
+          onError={(message) => {
+            setNotice("");
+            setError(message);
+          }}
+        />
       ) : null}
     </Shell>
   );

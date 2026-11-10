@@ -119,7 +119,7 @@ export function LoginPage() {
                   autoCapitalize="characters"
                   spellCheck={false}
                   className="mt-1 w-full rounded-lg border border-line bg-bg px-3 py-3 text-fg outline-none focus:border-gold"
-                  placeholder="選填，例如 TP1001"
+                  placeholder="選填，8 位英數"
                   value={inviteCode}
                   onChange={(event) => setInviteCode(event.target.value)}
                 />

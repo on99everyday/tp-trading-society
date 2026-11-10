@@ -1,18 +1,21 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import * as course from "./course.js";
 import {
   accountTaken,
   allocateAccountCode,
   applyMembership,
   assignTeamPrefix,
   ensureAccountCodes,
+  ensureInviteCodes,
   isAccountCode,
+  isInviteCode,
   memberFromSignup,
   membershipView,
   personRecord,
   prepareDatabase,
   referrerIdForInvite,
-  remintAccountSuffix,
   seedDatabase,
   toProfile,
   userByLoginName,
@@ -182,22 +185,38 @@ const SEED_ACCOUNT_CODES = {
   locked01: "TP1008",
 };
 
+const SEED_INVITE_CODES = {
+  admin: "ADMIN001",
+  demo: "DEMO0001",
+  student01: "STUD0001",
+  student02: "STUD0002",
+  student03: "STUD0003",
+  student04: "STUD0004",
+  student05: "STUD0005",
+  locked01: "LOCK0001",
+};
+
 test("seed users have stable team codes and no referrer", () => {
   const db = seedDatabase();
   const codes = new Set();
   const suffixes = new Set();
+  const invites = new Set();
   for (const [name, code] of Object.entries(SEED_ACCOUNT_CODES)) {
     const user = db.users.find((item) => item.name === name);
     assert.ok(user, name);
     assert.equal(user.accountCode, code);
     assert.equal(user.teamPrefix, "TP");
     assert.equal(isAccountCode(user.accountCode), true);
+    assert.equal(user.inviteCode, SEED_INVITE_CODES[name]);
+    assert.equal(isInviteCode(user.inviteCode), true);
     assert.equal(user.referredBy, null);
     codes.add(code);
     suffixes.add(code.slice(2));
+    invites.add(user.inviteCode);
   }
   assert.equal(codes.size, db.users.length);
   assert.equal(suffixes.size, db.users.length);
+  assert.equal(invites.size, db.users.length);
   const again = seedDatabase();
   assert.equal(again.users.find((user) => user.name === "admin").accountCode, "TP1001");
   assert.equal(again.users.find((user) => user.name === "demo").accountCode, "TP1002");
@@ -339,6 +358,7 @@ test("prepareDatabase backfills old localStorage users and keeps the rest of the
   assert.equal(first.db.users[0].referredBy, null);
   assert.equal(first.db.users[0].teamPrefix, "ZZ");
   assert.equal(first.db.users[0].accountCode, "ZZ2500");
+  assert.equal(first.db.users[0].inviteCode, "JJJJJJJJ");
   assert.equal(first.db.sessionId, "u-old");
   assert.equal(first.db.videos.length, 1);
   assert.equal(first.db.videos[0].id, 42);
@@ -351,28 +371,29 @@ test("prepareDatabase backfills old localStorage users and keeps the rest of the
   const second = prepareDatabase(first.db, () => 0);
   assert.equal(second.changed, false);
   assert.equal(second.db.users[0].accountCode, first.db.users[0].accountCode);
+  assert.equal(second.db.users[0].inviteCode, first.db.users[0].inviteCode);
   assert.equal(second.db.videos[0].title, "mine");
 });
 
-test("blank invite code has no referrer and a valid code is the referrer's id", () => {
+test("blank invite code has no referrer and a valid invite code is the referrer's id", () => {
   const users = seedDatabase().users;
   const admin = users.find((user) => user.name === "admin");
   assert.equal(referrerIdForInvite(users, ""), null);
   assert.equal(referrerIdForInvite(users, "   "), null);
   assert.equal(referrerIdForInvite(users, null), null);
-  assert.equal(referrerIdForInvite(users, admin.accountCode), "u-admin");
-  assert.equal(referrerIdForInvite(users, ` ${admin.accountCode} `), "u-admin");
-  assert.equal(referrerIdForInvite(users, "tp1001"), "u-admin");
+  assert.equal(referrerIdForInvite(users, admin.inviteCode), "u-admin");
+  assert.equal(referrerIdForInvite(users, ` ${admin.inviteCode.toLowerCase()} `), "u-admin");
 });
 
-test("unknown or malformed invite codes are rejected", () => {
+test("account codes and unknown invite codes are rejected", () => {
   const users = seedDatabase().users;
-  for (const code of ["123", "100001", "TP1009", "AB12345", "T1001", "12AB34"]) {
+  const admin = users.find((user) => user.name === "admin");
+  for (const code of [admin.accountCode, "tp1001", "123", "100001", "TP1009", "AB12345", "ZZZZZZZZ", "ADMIN001X", "ADMIN00!"]) {
     assert.throws(() => referrerIdForInvite(users, code), /會員邀請碼不正確/);
   }
 });
 
-test("new members get a unique account code and store referredBy from the invite", () => {
+test("registration looks up inviteCode, inherits teamPrefix, and mints a new invite code", () => {
   const users = seedDatabase().users.map((user) => ({ ...user }));
   const admin = users.find((user) => user.name === "admin");
   const created = memberFromSignup(
@@ -382,7 +403,7 @@ test("new members get a unique account code and store referredBy from the invite
       name: " newbie ",
       email: " new@example.com ",
       password: "password1",
-      inviteCode: admin.accountCode,
+      inviteCode: admin.inviteCode,
     },
     () => 0,
   );
@@ -392,8 +413,10 @@ test("new members get a unique account code and store referredBy from the invite
   assert.equal(created.referredBy, "u-admin");
   assert.equal(created.accountCode, "TP0000");
   assert.equal(created.teamPrefix, "TP");
+  assert.equal(created.inviteCode, "AAAAAAAA");
   assert.equal(created.basic, false);
   assert.equal(created.locked, false);
+  assert.equal(users.some((user) => user.inviteCode === created.inviteCode), false);
   users.push(created);
 
   const blank = memberFromSignup(
@@ -413,14 +436,17 @@ test("new members get a unique account code and store referredBy from the invite
   assert.equal(blank.role, "staff");
   assert.equal(blank.teamPrefix, "ZZ");
   assert.equal(blank.accountCode, "ZZ5000");
+  assert.equal(isInviteCode(blank.inviteCode), true);
+  assert.notEqual(blank.inviteCode, created.inviteCode);
   assert.equal(users.some((user) => user.accountCode === blank.accountCode), false);
   users.push(blank);
   users.push({
     id: "u-agent",
     name: "agent",
     email: "agent@example.com",
-    accountCode: "AB7777",
+    accountCode: "TP7777",
     teamPrefix: "AB",
+    inviteCode: "ABAGENT1",
     referredBy: null,
   });
 
@@ -431,7 +457,7 @@ test("new members get a unique account code and store referredBy from the invite
       name: "downline",
       email: "down@example.com",
       password: "password1",
-      inviteCode: "ab7777",
+      inviteCode: "abagent1",
       teamPrefix: "TP",
     },
     () => 0,
@@ -439,6 +465,8 @@ test("new members get a unique account code and store referredBy from the invite
   assert.equal(downline.referredBy, "u-agent");
   assert.equal(downline.teamPrefix, "AB");
   assert.equal(downline.accountCode, "AB0000");
+  assert.notEqual(downline.inviteCode, "ABAGENT1");
+  assert.equal(isInviteCode(downline.inviteCode), true);
 
   assert.throws(
     () =>
@@ -447,17 +475,52 @@ test("new members get a unique account code and store referredBy from the invite
         name: "third",
         email: "third@example.com",
         password: "password1",
-        inviteCode: "TP9999",
+        inviteCode: admin.accountCode,
+      }),
+    /會員邀請碼不正確/,
+  );
+  assert.throws(
+    () =>
+      memberFromSignup(users, {
+        id: "u-missing",
+        name: "fourth",
+        email: "fourth@example.com",
+        password: "password1",
+        inviteCode: "NOTEXIST",
       }),
     /會員邀請碼不正確/,
   );
 });
 
-test("person and profile records expose the account code", () => {
+test("invite codes stay unique and a valid code is not replaced", () => {
+  const users = [
+    { id: "a", name: "A", inviteCode: "KEEPCODE" },
+    { id: "b", name: "B", inviteCode: "keepcode" },
+    { id: "c", name: "C", inviteCode: "short" },
+    { id: "d", name: "D" },
+  ];
+  assert.equal(ensureInviteCodes(users, () => 0), true);
+  assert.equal(users[0].inviteCode, "KEEPCODE");
+  assert.equal(isInviteCode(users[1].inviteCode), true);
+  assert.equal(isInviteCode(users[2].inviteCode), true);
+  assert.equal(isInviteCode(users[3].inviteCode), true);
+  const codes = users.map((user) => user.inviteCode);
+  assert.equal(new Set(codes).size, codes.length);
+  assert.equal(codes.filter((code) => code === "KEEPCODE").length, 1);
+  assert.equal(ensureInviteCodes(users, () => 0.9), false);
+  assert.deepEqual(
+    users.map((user) => user.inviteCode),
+    codes,
+  );
+});
+
+test("person and profile records expose the account code and invite code", () => {
   const db = seedDatabase();
   const demo = db.users.find((user) => user.name === "demo");
   assert.equal(personRecord(demo).accountCode, "TP1002");
+  assert.equal(personRecord(demo).inviteCode, "DEMO0001");
   assert.equal(toProfile(demo, db).accountCode, "TP1002");
+  assert.equal(toProfile(demo, db).inviteCode, "DEMO0001");
 });
 
 test("login name lookup still ignores letter case after account codes exist", () => {
@@ -467,7 +530,7 @@ test("login name lookup still ignores letter case after account codes exist", ()
   assert.equal(userByLoginName(db.users, "TP1001"), null);
 });
 
-test("admin can move a member to another prefix and remint the last four digits", () => {
+test("changing the team prefix keeps the last four digits", () => {
   const users = [
     { id: "u-admin", accountCode: "TP1001", teamPrefix: "TP", referredBy: null },
     { id: "u-other", accountCode: "AB1001", teamPrefix: "AB", referredBy: null },
@@ -475,12 +538,24 @@ test("admin can move a member to another prefix and remint the last four digits"
   assert.equal(assignTeamPrefix(users[0], users, "hk"), "HK1001");
   assert.equal(users[0].teamPrefix, "HK");
   assert.equal(users[0].accountCode, "HK1001");
-  assert.equal(assignTeamPrefix(users[0], users, "AB", () => 0), "AB0000");
-  assert.equal(users[0].teamPrefix, "AB");
-  assert.equal(users[1].accountCode, "AB1001");
-  assert.equal(remintAccountSuffix(users[0], users, () => 0.25), "AB2500");
-  assert.equal(users[0].accountCode, "AB2500");
+  assert.throws(() => assignTeamPrefix(users[0], users, "AB"), /此會員編號已被使用/);
+  assert.equal(users[0].accountCode, "HK1001");
+  assert.equal(users[0].teamPrefix, "HK");
   assert.equal(users[1].accountCode, "AB1001");
   assert.throws(() => assignTeamPrefix(users[0], users, "A1"), /團隊前綴須為 2 個英文字母/);
-  assert.equal(users[0].accountCode, "AB2500");
+  assert.equal(users[0].accountCode, "HK1001");
+});
+
+test("the last four digits cannot be reminted", () => {
+  assert.equal(Object.hasOwn(course, "remintAccountSuffix"), false);
+  const staff = readFileSync(new URL("./pages/StaffPage.jsx", import.meta.url), "utf8");
+  const store = readFileSync(new URL("./store.jsx", import.meta.url), "utf8");
+  const courseSource = readFileSync(new URL("./course.js", import.meta.url), "utf8");
+  assert.equal(staff.includes("重發後4位"), false);
+  assert.equal(staff.includes("remintAccountCode"), false);
+  assert.equal(store.includes("remintAccountCode"), false);
+  assert.equal(store.includes("remintAccountSuffix"), false);
+  assert.equal(courseSource.includes("remintAccountSuffix"), false);
+  assert.equal(store.includes("setTeamPrefix"), true);
+  assert.equal(courseSource.includes("assignTeamPrefix"), true);
 });

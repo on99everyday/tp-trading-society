@@ -57,7 +57,7 @@ test("registration stores the referrer and does not record a commission", () => 
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   assert.equal(created.referredBy, "u-admin");
   assert.equal(created.basic, false);
@@ -71,7 +71,7 @@ test("changing membership without pay does not record a commission", () => {
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   applyMembership(buyer, { basic: true, vip: true, vipUntil: "2026-12-20" });
   assert.equal(buyer.basic, true);
@@ -86,7 +86,7 @@ test("the first basic payment records one commission and a repeat payment does n
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   const first = applySuccessfulPayment(db, buyer.id, "basic", paidAt);
   assert.equal(buyer.basic, true);
@@ -122,7 +122,7 @@ test("a basic payment still commissions once when basic was granted without pay"
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   applyMembership(buyer, { basic: true });
   const entry = applySuccessfulPayment(db, buyer.id, "basic", paidAt);
@@ -138,7 +138,7 @@ test("every successful VIP payment and renewal records a commission", () => {
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   const first = applySuccessfulPayment(db, buyer.id, "vip", paidAt);
   assert.equal(buyer.vip, true);
@@ -185,7 +185,7 @@ test("a missing referrer still opens membership and records no commission", () =
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   buyer.referredBy = "u-gone";
   assert.equal(applySuccessfulPayment(db, buyer.id, "basic", paidAt), null);
@@ -200,7 +200,7 @@ test("an unknown plan does not change membership or the ledger", () => {
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   assert.throws(() => applySuccessfulPayment(db, buyer.id, "gold", paidAt), /未能完成繳費/);
   assert.equal(buyer.basic, false);
@@ -215,7 +215,7 @@ test("commission summaries group by referrer and the CSV uses the ledger columns
     name: "Buyer",
     email: "buyer@example.com",
     password: "password1",
-    inviteCode: "TP1001",
+    inviteCode: "ADMIN001",
   });
   const other = addMember(
     db,
@@ -224,7 +224,7 @@ test("commission summaries group by referrer and the CSV uses the ledger columns
       name: "Other",
       email: "other@example.com",
       password: "password1",
-      inviteCode: "TP1002",
+      inviteCode: "DEMO0001",
     },
     () => 0.1,
   );

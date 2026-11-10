@@ -406,7 +406,7 @@ function badgeClass(label) {
 }
 
 function AccountCodeCell({ person, canManage, onChange, onError }) {
-  const { setTeamPrefix, remintAccountCode } = useStore();
+  const { setTeamPrefix } = useStore();
   const current = String(person.accountCode || "");
   const [prefix, setPrefix] = useState(current.slice(0, 2));
 
@@ -440,20 +440,6 @@ function AccountCodeCell({ person, canManage, onChange, onError }) {
         />
         <button type="submit" className="text-gold">
           改前綴
-        </button>
-        <button
-          type="button"
-          className="text-gold"
-          onClick={() => {
-            try {
-              remintAccountCode(person.userId);
-              onChange("已重發後 4 位");
-            } catch (err) {
-              onError(err instanceof Error ? err.message : "更新失敗");
-            }
-          }}
-        >
-          重發後4位
         </button>
       </form>
     </div>
@@ -552,6 +538,7 @@ function Accounts({ selfEmail, canAccounts, canRoles, canManageCodes, onChange, 
             <tr>
               <th className="px-4 py-3 font-medium">成員</th>
               <th className="px-4 py-3 font-medium">會員編號</th>
+              <th className="px-4 py-3 font-medium">邀請碼</th>
               <th className="px-4 py-3 font-medium">賬號</th>
               <th className="px-4 py-3 font-medium">會籍</th>
               <th className="px-4 py-3 font-medium">角色</th>
@@ -580,6 +567,7 @@ function Accounts({ selfEmail, canAccounts, canRoles, canManageCodes, onChange, 
                       onError={onError}
                     />
                   </td>
+                  <td className="px-4 py-3 font-medium tracking-wide">{person.inviteCode}</td>
                   <td className="px-4 py-3 text-muted">{person.email}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">

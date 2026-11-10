@@ -103,9 +103,17 @@ function AccountSection({ profile }) {
             aria-readonly="true"
           />
         </label>
-        <p className="text-xs text-muted">
-          這是你的會員編號。其他人註冊時可填作邀請碼，並會加入你的團隊。ZZ 開頭是無團隊自來客。
-        </p>
+        <p className="text-xs text-muted">會員編號建立後，後 4 位不會再改。ZZ 開頭是無團隊自來客。</p>
+        <label className="block text-sm text-muted">
+          會員邀請碼
+          <input
+            className="mt-1 w-full rounded-lg border border-line bg-bg px-3 py-3 text-fg uppercase outline-none"
+            value={profile.inviteCode || ""}
+            readOnly
+            aria-readonly="true"
+          />
+        </label>
+        <p className="text-xs text-muted">把這組邀請碼交給別人註冊，對方會加入你的團隊。</p>
         {message ? <p className="text-sm text-gold">{message}</p> : null}
         {error ? <p className="text-sm text-danger">{error}</p> : null}
         <button

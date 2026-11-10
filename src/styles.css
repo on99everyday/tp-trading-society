@@ -25,6 +25,7 @@
 .accounts-table{min-width:880px}
 .powers-table{min-width:760px}
 .ledger-table{min-width:980px}
+.ledger-date{color-scheme:dark}
 .rate-input{width:6rem}
 .nowrap{white-space:nowrap}
 .account-name{display:none}

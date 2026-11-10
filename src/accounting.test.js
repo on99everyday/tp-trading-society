@@ -9,6 +9,7 @@ import {
   commissionsCsv,
   DEFAULT_COMMISSION_RATE,
   ensureLedger,
+  filterCommissions,
   headerLinks,
   percentFromRate,
   summarizeByReferrer,
@@ -259,6 +260,121 @@ test("commission summaries group by referrer and the CSV uses the ledger columns
   assert.equal(other.accountCode.startsWith("TP"), true);
 });
 
+test("ledger filters keep matching detail rows and the CSV follows them", () => {
+  const db = seedDatabase();
+  const buyer = addMember(db, {
+    id: "u-buyer",
+    name: "Buyer",
+    email: "buyer@example.com",
+    password: "password1",
+    inviteCode: "ADMIN001",
+  });
+  const other = addMember(
+    db,
+    {
+      id: "u-other",
+      name: "Other",
+      email: "other@example.com",
+      password: "password1",
+      inviteCode: "DEMO0001",
+    },
+    () => 0.1,
+  );
+  applySuccessfulPayment(db, buyer.id, "basic", paidAt);
+  applySuccessfulPayment(db, buyer.id, "vip", new Date("2026-12-06T08:30:00.000Z"));
+  applySuccessfulPayment(db, other.id, "vip", new Date("2026-11-20T00:00:00.000Z"));
+  db.commissions.push({
+    id: 99,
+    at: "2026-10-01T00:00:00.000Z",
+    date: "2026-10-01",
+    referrerId: "u-missing",
+    referrerName: "Gone",
+    referrerAccountCode: "ZZ9999",
+    buyerId: "u-void",
+    buyerName: "Voided",
+    buyerAccountCode: "ZZ8888",
+    plan: "vip",
+    paymentAmount: 1500,
+    commissionAmount: 150,
+    rate: 0.1,
+    status: "void",
+  });
+
+  const all = filterCommissions(db.commissions, {}, db.users);
+  assert.equal(all.length, 4);
+  assert.deepEqual(
+    all.map((row) => row.id),
+    db.commissions.map((row) => row.id),
+  );
+  assert.equal(filterCommissions(db.commissions, { name: "  ", accountCode: "" }, db.users).length, 4);
+
+  const byReferrerCode = filterCommissions(db.commissions, { accountCode: "tp1002" }, db.users);
+  assert.deepEqual(byReferrerCode.map((row) => row.buyerName), ["Other"]);
+  const byBuyerCode = filterCommissions(db.commissions, { accountCode: buyer.accountCode.toLowerCase() }, db.users);
+  assert.deepEqual(byBuyerCode.map((row) => row.buyerName), ["Buyer", "Buyer"]);
+
+  const byReferrerInvite = filterCommissions(db.commissions, { inviteCode: "admin001" }, db.users);
+  assert.deepEqual(byReferrerInvite.map((row) => row.buyerId), ["u-buyer", "u-buyer"]);
+  const byBuyerInvite = filterCommissions(db.commissions, { inviteCode: buyer.inviteCode.slice(0, 4) }, db.users);
+  assert.deepEqual(byBuyerInvite.map((row) => row.buyerId), ["u-buyer", "u-buyer"]);
+  assert.equal(filterCommissions(db.commissions, { inviteCode: "ADMIN001" }).length, 0);
+
+  assert.deepEqual(filterCommissions(db.commissions, { name: "OTH" }, db.users).map((row) => row.buyerName), ["Other"]);
+  assert.deepEqual(
+    filterCommissions(db.commissions, { name: "admin" }, db.users).map((row) => row.referrerName),
+    ["admin", "admin"],
+  );
+
+  assert.deepEqual(filterCommissions(db.commissions, { plan: "basic" }, db.users).map((row) => row.plan), ["basic"]);
+  assert.equal(filterCommissions(db.commissions, { plan: "VIP 會員" }, db.users).length, 3);
+  assert.equal(filterCommissions(db.commissions, { status: "recorded" }, db.users).length, 3);
+  assert.deepEqual(filterCommissions(db.commissions, { status: "已記錄" }, db.users).map((row) => row.status), [
+    "recorded",
+    "recorded",
+    "recorded",
+  ]);
+  assert.deepEqual(filterCommissions(db.commissions, { status: "void" }, db.users).map((row) => row.buyerName), ["Voided"]);
+
+  assert.deepEqual(
+    filterCommissions(db.commissions, { dateFrom: "2026-11-20" }, db.users).map((row) => row.date),
+    ["2026-12-06", "2026-11-20"],
+  );
+  assert.deepEqual(
+    filterCommissions(db.commissions, { dateTo: "2026-11-06" }, db.users).map((row) => row.date),
+    ["2026-11-06", "2026-10-01"],
+  );
+  assert.deepEqual(
+    filterCommissions(db.commissions, { dateFrom: "2026-11-20", dateTo: "2026-11-20" }, db.users).map((row) => row.buyerName),
+    ["Other"],
+  );
+  assert.equal(filterCommissions(db.commissions, { dateFrom: "2026-12-31", dateTo: "2026-01-01" }, db.users).length, 0);
+  assert.equal(filterCommissions(db.commissions, { dateFrom: "not-a-date" }, db.users).length, 4);
+
+  const combined = filterCommissions(
+    db.commissions,
+    {
+      accountCode: "TP1001",
+      inviteCode: "ADMIN001",
+      name: "Buyer",
+      plan: "vip",
+      status: "recorded",
+      dateFrom: "2026-12-01",
+      dateTo: "2026-12-31",
+    },
+    db.users,
+  );
+  assert.equal(combined.length, 1);
+  assert.equal(combined[0].date, "2026-12-06");
+  assert.equal(combined[0].plan, "vip");
+
+  const csv = commissionsCsv(combined).replace(/^\uFEFF/, "").split("\r\n");
+  assert.deepEqual(csv, [
+    "日期,六位帳號（識別碼）,介紹人,被介紹人,計劃,金額,佣金,狀態",
+    "2026-12-06,TP1001,admin,Buyer,VIP 會員,1500,150,已記錄",
+  ]);
+  assert.equal(db.commissions.length, 4);
+});
+
 test("the admin can set a new rate and invalid percentages are rejected", () => {
   const db = seedDatabase();
   assert.equal(applyCommissionRate(db, "12.5"), 0.125);
@@ -399,6 +515,15 @@ test("角色權力 is its own header link and stays editable on the powers page"
   assert.equal(staffPage.includes("setPower"), false);
   assert.equal(powersPage.includes("<PowerTable"), true);
   assert.equal(powersPage.includes("setPower"), true);
+});
+
+test("the accounting page filters the detail ledger and exports those rows", () => {
+  const page = readFileSync(new URL("./pages/AccountingPage.jsx", import.meta.url), "utf8");
+  assert.match(page, /filterCommissions\(/);
+  assert.match(page, /commissionsCsv\(\s*filtered\s*\)/);
+  for (const label of ["會員識別碼", "邀請碼", "介紹人／被介紹人", "計劃", "狀態", "日期由", "日期至"]) {
+    assert.equal(page.includes(label), true, label);
+  }
 });
 
 test("setRole can assign accountant and still rejects an unknown role", () => {

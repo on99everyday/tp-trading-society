@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   applyCommissionRate,
@@ -360,6 +361,7 @@ test("accountant access is only the accounting power", () => {
   assert.deepEqual(headerLinks(toProfile(db.users.find((user) => user.role === "admin"), db)).map((link) => link.href), [
     "/accounting",
     "/staff",
+    "/powers",
   ]);
   assert.deepEqual(headerLinks(toProfile(db.users.find((user) => user.name === "student01"), db)), []);
   const staff = {
@@ -367,6 +369,36 @@ test("accountant access is only the accounting power", () => {
     powers: enabledPowers(db, "staff"),
   };
   assert.deepEqual(headerLinks(staff), [{ href: "/staff", label: "後台" }]);
+});
+
+test("角色權力 is its own header link and stays editable on the powers page", () => {
+  const db = seedDatabase();
+  const admin = toProfile(db.users.find((user) => user.role === "admin"), db);
+  assert.equal(admin.powers.includes("powers"), true);
+  assert.deepEqual(headerLinks(admin), [
+    { href: "/accounting", label: "帳目" },
+    { href: "/staff", label: "後台" },
+    { href: "/powers", label: "角色權力" },
+  ]);
+
+  const staffPowers = enabledPowers(db, "staff");
+  assert.equal(staffPowers.includes("powers"), false);
+  assert.deepEqual(headerLinks({ role: "staff", powers: staffPowers }), [{ href: "/staff", label: "後台" }]);
+  assert.deepEqual(headerLinks({ role: "staff", powers: [...staffPowers, "powers"] }), [
+    { href: "/staff", label: "後台" },
+    { href: "/powers", label: "角色權力" },
+  ]);
+  assert.deepEqual(headerLinks({ role: "student", powers: ["watch"] }), []);
+  assert.deepEqual(headerLinks({ role: "accountant", powers: ["accounting"] }), [
+    { href: "/accounting", label: "帳目" },
+  ]);
+
+  const staffPage = readFileSync(new URL("./pages/StaffPage.jsx", import.meta.url), "utf8");
+  const powersPage = readFileSync(new URL("./pages/PowersPage.jsx", import.meta.url), "utf8");
+  assert.equal(staffPage.includes("PowerTable"), false);
+  assert.equal(staffPage.includes("setPower"), false);
+  assert.equal(powersPage.includes("<PowerTable"), true);
+  assert.equal(powersPage.includes("setPower"), true);
 });
 
 test("setRole can assign accountant and still rejects an unknown role", () => {

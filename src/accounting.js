@@ -196,5 +196,8 @@ export function headerLinks(profile) {
   if (profile.powers?.some((power) => STAFF_KEYS.includes(power))) {
     links.push({ href: "/staff", label: "後台" });
   }
+  if (profile.powers?.includes("powers")) {
+    links.push({ href: "/powers", label: "角色權力" });
+  }
   return links;
 }

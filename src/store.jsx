@@ -36,16 +36,16 @@ function loadDatabase() {
     const ledgerChanged = ensureLedger(db);
     if (changed || ledgerChanged) {
       try {
-        localStorage.setItem(
-          KEY,
-          JSON.stringify({
-            ...parsed,
-            users: db.users,
-            powers: db.powers,
-            commissions: db.commissions,
-            commissionRate: db.commissionRate,
-          }),
-        );
+        const stored = {
+          ...parsed,
+          users: db.users,
+          powers: db.powers,
+          commissions: db.commissions,
+          basicCommissionRate: db.basicCommissionRate,
+          vipCommissionRate: db.vipCommissionRate,
+        };
+        delete stored.commissionRate;
+        localStorage.setItem(KEY, JSON.stringify(stored));
       } catch {
         // Quota or private-mode failures still leave the backfilled copy in memory.
       }
@@ -177,12 +177,20 @@ export function StoreProvider({ children }) {
           applySuccessfulPayment(next, user.id, plan);
         });
       },
-      setCommissionRate(percent) {
+      setCommissionRate(plan, percent) {
         if (!canEditCommissionRate(profile)) throw new Error("只有管理員可以調整佣金比例");
-        const draft = { commissionRate: db.commissionRate };
-        applyCommissionRate(draft, percent);
+        const draft = {
+          basicCommissionRate: db.basicCommissionRate,
+          vipCommissionRate: db.vipCommissionRate,
+        };
+        if (Object.prototype.hasOwnProperty.call(db, "commissionRate")) {
+          draft.commissionRate = db["commissionRate"];
+        }
+        applyCommissionRate(draft, plan, percent);
         commit((next) => {
-          next.commissionRate = draft.commissionRate;
+          next.basicCommissionRate = draft.basicCommissionRate;
+          next.vipCommissionRate = draft.vipCommissionRate;
+          delete next.commissionRate;
         });
       },
       recordLogin(device, region) {

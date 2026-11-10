@@ -11,6 +11,7 @@ import {
   ensureLedger,
   filterCommissions,
   headerLinks,
+  ledgerRows,
   percentFromRate,
   summarizeByReferrer,
 } from "./accounting.js";
@@ -48,7 +49,9 @@ function addMember(db, fields, random = () => 0) {
 test("the database defaults to a 10% commission rate and an empty ledger", () => {
   const db = seedDatabase();
   assert.equal(DEFAULT_COMMISSION_RATE, 0.1);
-  assert.equal(db.commissionRate, 0.1);
+  assert.equal(db.basicCommissionRate, 0.1);
+  assert.equal(db.vipCommissionRate, 0.1);
+  assert.equal(Object.hasOwn(db, "commissionRate"), false);
   assert.deepEqual(db.commissions, []);
 });
 
@@ -109,12 +112,13 @@ test("the first basic payment records one commission and a repeat payment does n
     status: "recorded",
   });
   assert.equal(first.paymentAmount, 1499);
-  applyCommissionRate(db, 20);
+  applyCommissionRate(db, "basic", 20);
   const second = applySuccessfulPayment(db, buyer.id, "basic", new Date("2026-12-01T00:00:00.000Z"));
   assert.equal(second, null);
   assert.equal(db.commissions.length, 1);
   assert.equal(db.commissions[0].rate, 0.1);
   assert.equal(db.commissions[0].commissionAmount, 149.9);
+  assert.equal(db.vipCommissionRate, 0.1);
 });
 
 test("a basic payment still commissions once when basic was granted without pay", () => {
@@ -152,7 +156,8 @@ test("every successful VIP payment and renewal records a commission", () => {
   assert.equal(first.status, "recorded");
   const until = new Date(buyer.vipUntil);
   assert.ok(until > paidAt);
-  applyCommissionRate(db, 20);
+  applyCommissionRate(db, "vip", 20);
+  assert.equal(db.basicCommissionRate, 0.1);
   const renewal = applySuccessfulPayment(db, buyer.id, "vip", new Date("2026-12-06T08:30:00.000Z"));
   assert.equal(renewal.plan, "vip");
   assert.equal(renewal.paymentAmount, 1500);
@@ -375,18 +380,67 @@ test("ledger filters keep matching detail rows and the CSV follows them", () => 
   assert.equal(db.commissions.length, 4);
 });
 
-test("the admin can set a new rate and invalid percentages are rejected", () => {
+test("the admin can set each rate and invalid percentages are rejected", () => {
   const db = seedDatabase();
-  assert.equal(applyCommissionRate(db, "12.5"), 0.125);
-  assert.equal(db.commissionRate, 0.125);
-  assert.equal(percentFromRate(db.commissionRate), 12.5);
-  assert.throws(() => applyCommissionRate(db, 101), /佣金比例須為 0 到 100/);
-  assert.throws(() => applyCommissionRate(db, -1), /佣金比例須為 0 到 100/);
-  assert.throws(() => applyCommissionRate(db, "nope"), /佣金比例須為 0 到 100/);
-  assert.equal(db.commissionRate, 0.125);
+  assert.equal(applyCommissionRate(db, "basic", "12.5"), 0.125);
+  assert.equal(db.basicCommissionRate, 0.125);
+  assert.equal(db.vipCommissionRate, 0.1);
+  assert.equal(percentFromRate(db.basicCommissionRate), 12.5);
+  assert.equal(applyCommissionRate(db, "vip", 8), 0.08);
+  assert.equal(db.basicCommissionRate, 0.125);
+  assert.equal(percentFromRate(db.vipCommissionRate), 8);
+  assert.throws(() => applyCommissionRate(db, "basic", 101), /佣金比例須為 0 到 100/);
+  assert.throws(() => applyCommissionRate(db, "vip", -1), /佣金比例須為 0 到 100/);
+  assert.throws(() => applyCommissionRate(db, "basic", "nope"), /佣金比例須為 0 到 100/);
+  assert.throws(() => applyCommissionRate(db, "gold", 10), /佣金比例須為 0 到 100/);
+  assert.equal(db.basicCommissionRate, 0.125);
+  assert.equal(db.vipCommissionRate, 0.08);
   assert.equal(canEditCommissionRate({ role: "admin" }), true);
   assert.equal(canEditCommissionRate({ role: "accountant" }), false);
   assert.equal(canEditCommissionRate({ role: "staff" }), false);
+});
+
+test("basic and vip payments use their own rates and the report shows rate and plan", () => {
+  const db = seedDatabase();
+  const buyer = addMember(db, {
+    id: "u-buyer",
+    name: "Buyer",
+    email: "buyer@example.com",
+    password: "password1",
+    inviteCode: "ADMIN001",
+  });
+  applyCommissionRate(db, "basic", 15);
+  applyCommissionRate(db, "vip", 25);
+  const basic = applySuccessfulPayment(db, buyer.id, "basic", paidAt);
+  const vip = applySuccessfulPayment(db, buyer.id, "vip", paidAt);
+  assert.equal(basic.plan, "basic");
+  assert.equal(basic.rate, 0.15);
+  assert.equal(basic.commissionAmount, 224.85);
+  assert.equal(vip.plan, "vip");
+  assert.equal(vip.rate, 0.25);
+  assert.equal(vip.commissionAmount, 375);
+  applyCommissionRate(db, "basic", 40);
+  const renewal = applySuccessfulPayment(db, buyer.id, "vip", new Date("2026-12-06T08:30:00.000Z"));
+  assert.equal(renewal.plan, "vip");
+  assert.equal(renewal.rate, 0.25);
+  assert.equal(renewal.commissionAmount, 375);
+  assert.equal(applySuccessfulPayment(db, buyer.id, "basic", new Date("2026-12-07T00:00:00.000Z")), null);
+  assert.equal(db.commissions.length, 3);
+
+  const rows = ledgerRows(db.commissions);
+  assert.deepEqual(
+    rows.map((row) => [row.計劃, row.佣金比例, row.佣金]),
+    [
+      ["基礎會員", "15%", "224.85"],
+      ["VIP 會員", "25%", "375"],
+      ["VIP 會員", "25%", "375"],
+    ],
+  );
+  const csv = commissionsCsv(db.commissions).replace(/^\uFEFF/, "").split("\r\n");
+  assert.equal(csv[0], "日期,六位帳號（識別碼）,介紹人,被介紹人,計劃,金額,佣金,狀態");
+  assert.equal(csv[0].includes("佣金比例"), false);
+  assert.equal(csv[1], "2026-11-06,TP1001,admin,Buyer,基礎會員,1499,224.85,已記錄");
+  assert.equal(csv[2], "2026-11-06,TP1001,admin,Buyer,VIP 會員,1500,375,已記錄");
 });
 
 test("old databases gain the default rate, an empty ledger, and accounting powers", () => {
@@ -416,7 +470,9 @@ test("old databases gain the default rate, an empty ledger, and accounting power
   };
   const prepared = prepareDatabase(stored, () => 0);
   assert.equal(ensureLedger(prepared.db), true);
-  assert.equal(prepared.db.commissionRate, 0.1);
+  assert.equal(prepared.db.basicCommissionRate, 0.1);
+  assert.equal(prepared.db.vipCommissionRate, 0.1);
+  assert.equal(Object.hasOwn(prepared.db, "commissionRate"), false);
   assert.deepEqual(prepared.db.commissions, []);
   assert.equal(prepared.db.powers.find((row) => row.role === "staff" && row.permission === "upload").enabled, false);
   assert.equal(prepared.db.powers.find((row) => row.role === "accountant" && row.permission === "accounting").enabled, true);
@@ -425,6 +481,72 @@ test("old databases gain the default rate, an empty ledger, and accounting power
   assert.equal(prepared.db.powers.find((row) => row.role === "staff" && row.permission === "accounting").enabled, false);
   assert.equal(prepared.db.videos[0].title, "keep");
   assert.equal(ensureLedger(prepared.db), false);
+});
+
+function legacyStore(extra = {}) {
+  return {
+    users: [
+      {
+        id: "u-old",
+        name: "OldUser",
+        email: "old@example.com",
+        password: "secret123",
+        role: "student",
+        basic: false,
+        vip: false,
+        vipUntil: null,
+        locked: false,
+        accountCode: "ZZ1000",
+        teamPrefix: "ZZ",
+        inviteCode: "OLD00001",
+        referredBy: null,
+      },
+    ],
+    powers: defaultPowerRows(),
+    commissions: [],
+    videos: [],
+    ...extra,
+  };
+}
+
+test("a stored commission rate migrates onto both plans without resetting it", () => {
+  const prepared = prepareDatabase(legacyStore({ commissionRate: 0.18 }), () => 0);
+  assert.equal(ensureLedger(prepared.db), true);
+  assert.equal(prepared.db.basicCommissionRate, 0.18);
+  assert.equal(prepared.db.vipCommissionRate, 0.18);
+  assert.equal(Object.hasOwn(prepared.db, "commissionRate"), false);
+  assert.equal(prepared.db.users[0].accountCode, "ZZ1000");
+  assert.equal(prepared.db.users[0].inviteCode, "OLD00001");
+  assert.equal(ensureLedger(prepared.db), false);
+
+  const partial = prepareDatabase(
+    legacyStore({ commissionRate: 0.18, basicCommissionRate: 0.12 }),
+    () => 0,
+  );
+  assert.equal(ensureLedger(partial.db), true);
+  assert.equal(partial.db.basicCommissionRate, 0.12);
+  assert.equal(partial.db.vipCommissionRate, 0.18);
+  assert.equal(Object.hasOwn(partial.db, "commissionRate"), false);
+
+  const zeros = prepareDatabase(
+    legacyStore({ commissionRate: 0.18, basicCommissionRate: 0, vipCommissionRate: 0 }),
+    () => 0,
+  );
+  assert.equal(ensureLedger(zeros.db), true);
+  assert.equal(zeros.db.basicCommissionRate, 0);
+  assert.equal(zeros.db.vipCommissionRate, 0);
+  assert.equal(Object.hasOwn(zeros.db, "commissionRate"), false);
+
+  const free = prepareDatabase(legacyStore({ commissionRate: 0 }), () => 0);
+  assert.equal(ensureLedger(free.db), true);
+  assert.equal(free.db.basicCommissionRate, 0);
+  assert.equal(free.db.vipCommissionRate, 0);
+
+  const broken = prepareDatabase(legacyStore({ commissionRate: 2 }), () => 0);
+  assert.equal(ensureLedger(broken.db), true);
+  assert.equal(broken.db.basicCommissionRate, 0.1);
+  assert.equal(broken.db.vipCommissionRate, 0.1);
+  assert.equal(Object.hasOwn(broken.db, "commissionRate"), false);
 });
 
 test("accountant access is only the accounting power", () => {
@@ -524,6 +646,21 @@ test("the accounting page filters the detail ledger and exports those rows", () 
   for (const label of ["會員識別碼", "邀請碼", "介紹人／被介紹人", "計劃", "狀態", "日期由", "日期至"]) {
     assert.equal(page.includes(label), true, label);
   }
+});
+
+test("the accounting page edits basic and vip rates separately", () => {
+  const page = readFileSync(new URL("./pages/AccountingPage.jsx", import.meta.url), "utf8");
+  const store = readFileSync(new URL("./store.jsx", import.meta.url), "utf8");
+  assert.match(page, /id="basic-commission-rate"/);
+  assert.match(page, /id="vip-commission-rate"/);
+  assert.match(page, /setCommissionRate\(\s*"basic"/);
+  assert.match(page, /setCommissionRate\(\s*"vip"/);
+  assert.equal(page.includes("佣金比例"), true);
+  assert.equal(page.includes('id="commission-rate"'), false);
+  assert.match(store, /basicCommissionRate: db\.basicCommissionRate/);
+  assert.match(store, /vipCommissionRate: db\.vipCommissionRate/);
+  assert.equal(store.includes("db.commissionRate"), false);
+  assert.equal(store.includes("next.commissionRate ="), false);
 });
 
 test("setRole can assign accountant and still rejects an unknown role", () => {
